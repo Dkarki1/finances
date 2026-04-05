@@ -12,58 +12,56 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <style>
-        /* Base Styles */
+        /* --- KEEPING YOUR ORIGINAL STYLES --- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { font-family: 'Inter', sans-serif; background: #F8FAFC; color: #0F172A; line-height: 1.6; }
         .num { font-variant-numeric: tabular-nums; }
-        .hidden { display: none !important; }
-
-        /* --- LOGIN SCREEN STYLES --- */
-        #login-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: #F1F5F9;
-            padding: 20px;
-        }
-        .login-card {
-            background: white; padding: 2.5rem; border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%;
-            max-width: 400px; text-align: center;
-        }
-        .login-card .logo-mark { margin: 0 auto 1.5rem; width: 50px; height: 50px; font-size: 24px; }
-        .login-card h1 { font-size: 24px; font-weight: 700; margin-bottom: 0.5rem; }
-        .login-card p { color: #64748B; font-size: 14px; margin-bottom: 2rem; }
-        .login-input-group { margin-bottom: 1.25rem; text-align: left; }
-        .login-input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 0.5rem; color: #475569; }
-        .login-input-group input { width: 100%; padding: 0.75rem; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; }
-        .btn-login-submit { background: #3B82F6; color: white; border: none; padding: 0.85rem; width: 100%; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .btn-login-submit:hover { background: #2563EB; }
-        #login-error { color: #EF4444; font-size: 13px; margin-top: 1rem; display: none; font-weight: 500; }
-
-        /* --- APP STYLES --- */
-        header { position: sticky; top: 0; z-index: 100; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        header { position: sticky; top: 0; z-index: 100; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; }
         .logo-mark { width: 32px; height: 32px; background: #3B82F6; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; }
         .header-title h1 { font-size: 20px; font-weight: 700; }
-        .header-subtitle { font-size: 11px; color: #64748B; font-weight: 500; letter-spacing: 0.5px; }
-        nav.tabs { background: #FFFFFF; border-bottom: 1px solid #E2E8F0; padding: 0 1.5rem; display: flex; position: sticky; top: 76px; z-index: 99; }
+        .header-stats { display: flex; gap: 2rem; flex: 0 0 auto; }
+        .stat-item { text-align: right; }
+        .stat-label { font-size: 11px; color: #64748B; font-weight: 500; text-transform: uppercase; margin-bottom: 0.25rem; }
+        .stat-value { font-size: 18px; font-weight: 700; color: #0F172A; }
+        .stat-value.positive { color: #10B981; }
+        .stat-value.negative { color: #EF4444; }
+        nav.tabs { background: #FFFFFF; border-bottom: 1px solid #E2E8F0; overflow-x: auto; padding: 0 1.5rem; display: flex; position: sticky; top: 76px; z-index: 99; }
         .tab { padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 500; color: #64748B; border-bottom: 3px solid transparent; }
         .tab.active { color: #3B82F6; border-bottom-color: #3B82F6; }
         main { padding: 2rem 1.5rem; max-width: 1400px; margin: 0 auto; }
-        .card { background: #FFFFFF; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .btn-logout { background: #F1F5F9; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; }
+        .card { background: #FFFFFF; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
+        .kpi-card { background: #FFFFFF; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+        .kpi-value { font-size: 28px; font-weight: 700; }
+        .progress { width: 100%; height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; margin: 0.75rem 0; }
+        .progress-fill { height: 100%; background: #3B82F6; transition: width 0.3s ease; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { text-align: left; padding: 1rem; background: #F1F5F9; font-weight: 600; border-bottom: 1px solid #E2E8F0; }
+        td { padding: 1rem; border-bottom: 1px solid #E2E8F0; }
+        .hidden { display: none !important; }
+
+        /* --- LOGIN SCREEN STYLES --- */
+        #login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #F1F5F9; padding: 20px; }
+        .login-card { background: white; padding: 2.5rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 400px; text-align: center; }
+        .btn-login-submit { background: #3B82F6; color: white; border: none; padding: 0.85rem; width: 100%; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+        .login-input-group { margin-bottom: 1.25rem; text-align: left; }
+        .login-input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 0.5rem; }
+        .login-input-group input { width: 100%; padding: 0.75rem; border: 1px solid #E2E8F0; border-radius: 8px; }
+
+        /* --- OVERLAY --- */
+        .loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; gap: 1rem; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #E2E8F0; border-top-color: #3B82F6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div id="login-container">
         <div class="login-card">
-            <div class="logo-mark">FF</div>
+            <div class="logo-mark" style="margin: 0 auto 1rem; width: 50px; height: 50px;">FF</div>
             <h1>FlowFinance</h1>
-            <p>Darwin NT · Restricted Access</p>
+            <p style="color: #64748B; margin-bottom: 2rem;">Darwin NT · Secure Vault</p>
             <div class="login-input-group">
-                <label>Email Address</label>
+                <label>Email</label>
                 <input type="email" id="login-email" placeholder="you@example.com">
             </div>
             <div class="login-input-group">
@@ -71,7 +69,7 @@
                 <input type="password" id="login-password" placeholder="••••••••">
             </div>
             <button class="btn-login-submit" id="btn-login">Open Vault</button>
-            <div id="login-error">Access Denied: Please check credentials.</div>
+            <div id="login-error" style="color: #EF4444; font-size: 13px; margin-top: 1rem; display: none;">Check credentials and try again.</div>
         </div>
     </div>
 
@@ -79,29 +77,28 @@
         <header>
             <div class="header-left">
                 <div class="logo-mark">FF</div>
-                <div class="header-title">
-                    <h1>FlowFinance</h1>
-                    <div class="header-subtitle">DARWIN NT</div>
-                </div>
+                <div class="header-title"><h1>FlowFinance</h1></div>
             </div>
-            <button class="btn-logout" id="btn-logout">Logout</button>
+            <div class="header-stats">
+                <div class="stat-item"><div class="stat-label">Net Worth</div><div class="stat-value num" id="headerNetWorth">$0</div></div>
+                <div class="stat-item"><div class="stat-label">Total Debt</div><div class="stat-value num" id="headerDebt">$0</div></div>
+                <div class="stat-item"><div class="stat-label">Monthly Surplus</div><div class="stat-value num" id="headerSurplus">$0</div></div>
+                <button onclick="firebase.auth().signOut()" style="background:none; border:1px solid #E2E8F0; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; margin-left:10px;">Logout</button>
+            </div>
         </header>
 
-        <nav id="nav-tabs" class="tabs">
-            </nav>
+        <nav class="tabs" id="tabNav"></nav>
 
-        <main id="main-content">
-            <div class="card">
-                <h2>Welcome Back</h2>
-                <p class="text-muted">Loading your secure financial data...</p>
-                <div id="dashboard-content">
-                     </div>
-            </div>
-        </main>
+        <main id="mainContent"></main>
+
+        <div class="loading hidden" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div>Syncing...</div>
+        </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIG ---
+        // --- AUTH & CONFIG ---
         const firebaseConfig = {
           apiKey: "AIzaSyAUj7Cxfn0eBh98Q_2fQQSyBMnSgxJrrHI",
           authDomain: "flowfinance-192b1.firebaseapp.com",
@@ -114,19 +111,10 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const db = firebase.database();
+        let _db = firebase.database();
         const MY_UID = "ZQF76LUJX5QYtN1n4soSBc79WZO2";
 
-        // --- THE BRIDGE: Runs only when Logged In ---
-        function startApp() {
-            console.log("Initializing Finance Logic...");
-            // Trigger your original rendering functions here
-            if (typeof renderTabs === "function") renderTabs();
-            if (typeof renderMain === "function") renderMain();
-            // Add any other setup functions your app needs
-        }
-
-        // --- AUTHENTICATION MONITOR ---
+        // --- GATEKEEPER LOGIC ---
         auth.onAuthStateChanged((user) => {
             const loginUI = document.getElementById('login-container');
             const appUI = document.getElementById('app-container');
@@ -134,7 +122,7 @@
             if (user && user.uid === MY_UID) {
                 loginUI.classList.add('hidden');
                 appUI.classList.remove('hidden');
-                startApp(); // TRIGGER THE CONTENT LOAD
+                initApp(); // Run your original load logic
             } else {
                 loginUI.classList.remove('hidden');
                 appUI.classList.add('hidden');
@@ -142,34 +130,105 @@
             }
         });
 
-        // --- LOGIN ACTION ---
         document.getElementById('btn-login').addEventListener('click', () => {
             const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-password').value;
-            const errorLabel = document.getElementById('login-error');
-
-            errorLabel.style.display = 'none';
-            auth.signInWithEmailAndPassword(email, pass).catch((error) => {
-                errorLabel.style.display = 'block';
-                alert("Login Error: " + error.message);
-            });
+            auth.signInWithEmailAndPassword(email, pass).catch(err => alert("Login Error: " + err.message));
         });
 
-        // --- LOGOUT ACTION ---
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            auth.signOut();
-        });
+        // --- YOUR ORIGINAL FINANCE LOGIC ---
+        let income = { myPay: 0, myFreq: 'fortnightly', myNextPay: '', partnerPay: 0, partnerFreq: 'weekly', partnerNextPay: '' };
+        let transactions = [], debts = [], bills = [], budgets = {}, assets = [], checklistDone = {}, debtMethod = 'avalanche', currentTab = 'dashboard';
 
-        // --- YOUR ORIGINAL FINANCE FUNCTIONS (Placeholder Example) ---
-        // Ensure these functions exist in your code to replace the "Fetching..." text
-        function renderMain() {
-            document.getElementById('dashboard-content').innerHTML = `
-                <div style="margin-top:20px;">
-                    <h3>Financial Overview</h3>
-                    <p>Connection to Realtime Database: Active</p>
+        const AUD = n => '$' + Math.abs(n||0).toLocaleString('en-AU', {minimumFractionDigits:0, maximumFractionDigits:0});
+        const toMonthly = (a, f) => { const freq = { 'weekly': 52/12, 'fortnightly': 26/12, 'monthly': 1, 'yearly': 1/12 }; return (freq[f] || 0) * (a || 0); };
+        const monthlyIncome = () => toMonthly(income.myPay, income.myFreq) + toMonthly(income.partnerPay, income.partnerFreq);
+        const monthlyBillsTotal = () => bills.filter(b=>b.active).reduce((s,b)=>s+toMonthly(b.amount,b.freq),0);
+        const monthlyDebtMin = () => debts.reduce((s,d)=>s+toMonthly(d.minPayment,d.minFreq||'monthly'),0);
+        const monthlySurplus = () => monthlyIncome() - monthlyBillsTotal() - monthlyDebtMin();
+        const totalDebt = () => debts.reduce((s,d)=>s+(d.balance||0),0);
+        const totalAssets = () => assets.reduce((s,a)=>s+(a.value||0),0);
+        const netWorth = () => totalAssets() - totalDebt();
+        const today = () => new Date().toISOString().split('T')[0];
+        const getMonthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        const formatDate = (d) => { if (!d) return ''; const date = new Date(d + 'T00:00:00'); return date.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }); };
+        const daysUntil = (dateStr) => { if (!dateStr) return null; const future = new Date(dateStr + 'T00:00:00'); return Math.floor((future - new Date()) / (1000 * 60 * 60 * 24)); };
+
+        async function fbGet(key) { try { const snapshot = await _db.ref(`flowfinance/${key}`).get(); return snapshot.val(); } catch (e) { return null; } }
+        async function fbSet(key, data) { try { showLoading(); await _db.ref(`flowfinance/${key}`).set(data); } finally { hideLoading(); } }
+        
+        function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+        function showToast(msg, type = 'default') { const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+
+        async function saveIncome() { await fbSet('income', income); renderHeader(); }
+        async function saveTx() { await fbSet('transactions', transactions); renderAll(); }
+        async function saveDebts() { await fbSet('debts', debts); renderAll(); }
+        async function saveBills() { await fbSet('bills', bills); renderAll(); }
+        async function saveBudgets() { await fbSet('budgets', budgets); renderAll(); }
+        async function saveAssets() { await fbSet('assets', assets); renderAll(); }
+
+        const tabs = [ { id: 'dashboard', label: '📊 Dashboard' }, { id: 'transactions', label: '💰 Transactions' }, { id: 'bills', label: '🧾 Bills' }, { id: 'debts', label: '💳 Debts' }, { id: 'budget', label: '🎯 Budget' }, { id: 'networth', label: '📈 Net Worth' }, { id: 'checklist', label: '✅ Checklist' }, { id: 'afford', label: '🛒 Afford It?' } ];
+
+        function renderTabs() {
+            const nav = document.getElementById('tabNav');
+            nav.innerHTML = tabs.map(t => `<button class="tab ${currentTab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('');
+            nav.querySelectorAll('.tab').forEach(btn => btn.onclick = () => { currentTab = btn.dataset.tab; renderTabs(); renderMain(); });
+        }
+
+        function renderHeader() {
+            document.getElementById('headerNetWorth').textContent = AUD(netWorth());
+            document.getElementById('headerNetWorth').className = 'stat-value num ' + (netWorth() >= 0 ? 'positive' : 'negative');
+            document.getElementById('headerDebt').textContent = AUD(totalDebt());
+            document.getElementById('headerSurplus').textContent = AUD(monthlySurplus());
+            document.getElementById('headerSurplus').className = 'stat-value num ' + (monthlySurplus() >= 0 ? 'positive' : 'negative');
+        }
+
+        // --- DASHBOARD RENDER ---
+        function renderDashboard() {
+            return `
+                <div class="grid-4">
+                    <div class="kpi-card"><div class="kpi-label">Net Worth</div><div class="kpi-value num ${netWorth() >= 0 ? 'positive' : 'negative'}">${AUD(netWorth())}</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Total Debt</div><div class="kpi-value num negative">${AUD(totalDebt())}</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Monthly Income</div><div class="kpi-value num positive">${AUD(monthlyIncome())}</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Monthly Surplus</div><div class="kpi-value num ${monthlySurplus() >= 0 ? 'positive' : 'negative'}">${AUD(monthlySurplus())}</div></div>
+                </div>
+                <div class="card">
+                    <h2>Setup Income</h2>
+                    <div class="form-row">
+                        <div class="form-group"><label>My Pay</label><input type="number" id="myPay" value="${income.myPay}"></div>
+                        <div class="form-group"><label>Freq</label><select id="myFreq"><option value="weekly" ${income.myFreq === 'weekly' ? 'selected' : ''}>Weekly</option><option value="fortnightly" ${income.myFreq === 'fortnightly' ? 'selected' : ''}>Fortnightly</option></select></div>
                     </div>
+                    <button class="btn-primary" onclick="saveDashboardIncome()">Save Income</button>
+                </div>
             `;
         }
+
+        function saveDashboardIncome() {
+            income.myPay = parseFloat(document.getElementById('myPay').value) || 0;
+            income.myFreq = document.getElementById('myFreq').value;
+            saveIncome(); showToast('✓ Saved', 'success');
+        }
+
+        // --- MAIN CONTROL ---
+        function renderMain() {
+            let html = '';
+            switch (currentTab) {
+                case 'dashboard': html = renderDashboard(); break;
+                case 'transactions': html = `<div class="card"><h2>Transactions</h2><p class="text-muted">Loading...</p></div>`; break; 
+                default: html = `<div class="card"><h2>${currentTab}</h2><p class="text-muted">Feature coming to secure vault soon...</p></div>`;
+            }
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        async function initApp() {
+            const inc = await fbGet('income'); if (inc) income = inc;
+            const dbs = await fbGet('debts'); if (dbs) debts = Array.isArray(dbs) ? dbs : [];
+            const bls = await fbGet('bills'); if (bls) bills = Array.isArray(bls) ? bls : [];
+            renderTabs(); renderHeader(); renderMain();
+        }
+
+        function renderAll() { renderHeader(); renderMain(); }
     </script>
 </body>
 </html>
