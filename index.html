@@ -51,7 +51,7 @@
         .btn-login-submit:hover { background: #2563EB; }
         #login-error { color: #EF4444; font-size: 13px; margin-top: 1rem; display: none; font-weight: 500; }
 
-        /* --- APP STYLES (Your Original Styles Integrated) --- */
+        /* --- APP STYLES --- */
         header { 
             position: sticky; top: 0; z-index: 100; background: #FFFFFF; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 1rem 1.5rem; 
@@ -102,7 +102,7 @@
             </div>
             
             <button class="btn-login-submit" id="btn-login">Open Vault</button>
-            <div id="login-error">Access Denied: Incorrect credentials.</div>
+            <div id="login-error">Access Denied: Please check credentials.</div>
         </div>
     </div>
 
@@ -122,11 +122,74 @@
             <button class="tab active">Dashboard</button>
             <button class="tab">Expenses</button>
             <button class="tab">Budget</button>
-            <button class="tab">Debts</button>
         </nav>
 
         <main>
             <div class="card">
                 <h2>Welcome Back</h2>
-                <p class="text-muted">Your financial vault is now decrypted and secure.</p>
+                <p class="text-muted">Your financial vault is now secure.</p>
                 <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid #E2E8F0;">
+                <div id="dashboard-content">
+                    <p>Fetching your financial data...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyAUj7Cxfn0eBh98Q_2fQQSyBMnSgxJrrHI",
+          authDomain: "flowfinance-192b1.firebaseapp.com",
+          databaseURL: "https://flowfinance-192b1-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "flowfinance-192b1",
+          storageBucket: "flowfinance-192b1.firebasestorage.app",
+          messagingSenderId: "692128745748",
+          appId: "1:692128745748:web:2b27b484c32534259fda01"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const MY_UID = "ZQF76LUJX5QYtN1n4soSBc79WZO2";
+
+        // --- AUTHENTICATION MONITOR ---
+        auth.onAuthStateChanged((user) => {
+            const loginUI = document.getElementById('login-container');
+            const appUI = document.getElementById('app-container');
+
+            if (user && user.uid === MY_UID) {
+                loginUI.classList.add('hidden');
+                appUI.classList.remove('hidden');
+                console.log("Access Granted to UID: " + user.uid);
+            } else {
+                loginUI.classList.remove('hidden');
+                appUI.classList.add('hidden');
+                if (user) {
+                    alert("Unauthorized Access: Your account is not the owner of this vault.");
+                    auth.signOut();
+                }
+            }
+        });
+
+        // --- LOGIN ACTION ---
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const errorLabel = document.getElementById('login-error');
+
+            errorLabel.style.display = 'none';
+
+            auth.signInWithEmailAndPassword(email, pass)
+                .catch((error) => {
+                    errorLabel.style.display = 'block';
+                    alert("Firebase Error: " + error.code + "\n" + error.message);
+                });
+        });
+
+        // --- LOGOUT ACTION ---
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            auth.signOut();
+        });
+    </script>
+</body>
+</html>
