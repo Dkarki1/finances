@@ -845,9 +845,13 @@
     };
 
     let _db = null;
-    if (!firebaseConfig.apiKey.includes('PASTE_') && !firebaseConfig.projectId.includes('PASTE_')) {
-      firebase.initializeApp(firebaseConfig);
-      _db = firebase.database();
+    try {
+      if (typeof firebase !== 'undefined' && !firebaseConfig.apiKey.includes('PASTE_') && !firebaseConfig.projectId.includes('PASTE_')) {
+        firebase.initializeApp(firebaseConfig);
+        _db = firebase.database();
+      }
+    } catch (e) {
+      console.error('Firebase init error:', e);
     }
 
     async function fbGet(key) {
@@ -1704,7 +1708,6 @@
     function renderBudget() {
       const monthKey = getMonthKey();
       const categories = ['Housing', 'Utilities', 'Food', 'Transport', 'Health', 'Entertainment', 'Shopping', 'Other'];
-
       return `
         <div class="card">
           <h2>Budget Ceilings</h2>
@@ -1716,12 +1719,11 @@
               const remaining = ceiling - spent;
               const percent = ceiling > 0 ? (spent / ceiling) * 100 : 0;
               const weekly = ceiling / 4.3;
-
               return `
                 <div class="category-item">
                   <label>${cat}</label>
                   <input type="number" value="${ceiling}" onchange="setBudgetCeiling('${cat}', this.value)" min="0" placeholder="$">
-                  <div style="font-size: 12px; color: #64748B;">Spent: ${AUD(spent)} / ${AUD(ceiling)}<br>Remaining: <span class="num" style="font-weight: 600; color: ${remaining < 0 ? '#EF4444' : '#10B981'}">${AUD(remaining)}</span><br>${AUD(weekly)}/week</div>
+                  <div style="font-size: 12px; color: #64748B;">Spent: ${AUD(suent)} / ${AUD(ceiling)}<br>Remaining: <span class="num" style="font-weight: 600; color: ${remaining < 0 ? '#EF4444' : '#10B981'}">${AUD(remaining)}</span><br>${AUD(weekly)}/week</div>
                   <div class="progress"><div class="progress-fill ${percent > 100 ? 'danger' : percent > 75 ? 'warning' : 'success'}" style="width: ${Math.min(100, percent)}%"></div></div>
                 </div>
               `;
@@ -1836,125 +1838,119 @@
 
       return `
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2>${monthLabel} Checklist</h2>
-            <span class="text-muted">${completedCount}/${allTasks.length} tasks</span>
+          <h2>Monthly Checklist — ${monthLabel}</h2>
+          <div style="margin-bottom: 1rem;">
+            <div class="flex-between" style="margin-bottom: 0.5rem;"><span>${completedCount} of ${allTasks.length}</span><span style="font-weight: 700; color: #3B82F6;">${progressPercent}%</span></div>
+            <div class="progress"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
           </div>
-          <div class="progress" style="margin-bottom: 1.5rem;"><div class="progress-fill ${progressPercent >= 100 ? 'success' : progressPercent >= 50 ? 'warning' : 'danger'}" style="width: ${progressPercent}%"></div></div>
-          <h3 style="margin-bottom: 1rem;">Non-Negotiables</h3>
-          ${nonNegotiables.map(t => `
-            <div class="checklist-item ${done[t.key] ? 'done' : ''}">
-              <div class="flex-between">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                  <input type="checkbox" ${done[t.key] ? 'checked' : ''} onchange="toggleChecklist('${t.key}')">
-                  <div><div>${t.label}</div><span class="text-muted" style="font-size: 11px;">${t.priority}</span></div>
-                </div>
-                ${done[t.key] ? '<span style="color: #10B981; font-size: 20px;">✓</span>' : ''}
-              </div>
-            </div>
-          `).join('')}
+        </div>
 
-          ${dynamic.length > 0 ? `<h3 style="margin: 1.5rem 0 1rem;">This Month</h3>
-          ${dynamic.map(t => `
-            <div class="checklist-item ${done[t.key] ? 'done' : ''}">
-              <div class="flex-between">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                  <input type="checkbox" ${done[t.key] ? 'checked' : ''} onchange="toggleChecklist('${t.key}')">
-                  <div><div>${t.label}</div><span class="text-muted" style="font-size: 11px;">${t.priority}</span></div>
-                </div>
-                ${done[t.key] ? '<span style="color: #10B981; font-size: 20px;">✓</span>' : ''}
-              </div>
-            </div>
-          `).join('')}` : ''}
+        <div class="card">
+          <h2>Non-Negotiables</h2>
+          ${nonNegotiables.map(task => renderChecklistTask(task, done[task.key] || false, monthKey)).join('')}
+        </div>
+
+        <div class="card">
+          <h2>Priorities</h2>
+          ${dynamic.length > 0 ? dynamic.map(task => renderChecklistTask(task, done[task.key] || false, monthKey)).join('') : '<p class="text-muted">All caught up!</p>'}
         </div>
       `;
     }
 
-    function toggleChecklist(key) {
-      const monthKey = getMonthKey();
-      if (!checklistDone[monthKey]) checklistDone[monthKey] = {};
-      checklistDone[monthKey][key] = !checklistDone[monthKey][key];
-      saveChecklist();
-      renderMain();
+    function renderChecklistTask(task, isChecked, monthKey) {
+      const priorityColor = { 'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Habit': '🟢' };
+      return `
+        <div class="checklist-task ${isChecked ? 'done' : ''}">
+          <div class="checklist-checkbox ${isChecked ? 'checked' : ''}" onclick="toggleChecklistTask('${task.key}', '${monthKey}')">
+            ${isChecked ? '✓' : ''}
+          </div>
+          <div class="checklist-label">${task.label}</div>
+          <span style="font-size: 12px; white-space: nowrap;">${priorityColor[task.priority] || '🟢'}</span>
+        </div>
+      `;
     }
 
-    // Afford It?
-    function renderAfford() {
-      const monthly = monthlyIncome();
-      const monthlyExpenses = totalMonthlyExpenses();
-      const monthlyDebts = monthlyDebtMin();
-      const savingsRate = 0.20;
-      const freeCash = monthly - monthlyExpenses - monthlyDebts - (monthly * savingsRate);
+    function toggleChecklistTask(key, monthKey) { if (!checklistDone[monthKey]) checklistDone[monthKey] = {}; checklistDone[monthKey][key] = !checklistDone[monthKey][key]; saveChecklistDone(); renderMain(); }
 
+    function generateDynamicTasks() {
+      const tasks = [];
+      if (totalDebt() > 20000) {
+        const highestRate = debts.reduce((max, d) => d.rate > max.rate ? d : max, { rate: 0, name: 'N/A' });
+        if (highestRate.name !== 'N/A') tasks.push({ key: 'extra-payment', label: `🎯 Extra payment on ${highestRate.name}`, priority: 'High' });
+      }
+      debts.forEach(d => {
+        if (d.rate > 18) tasks.push({ key: `critical-${d.id}`, label: `⚠️ ${d.name} at ${d.rate}% — prioritize`, priority: 'Critical' });
+      });
+      const txCount = transactions.filter(t => getMonthKey(new Date(t.date + 'T00:00:00')) === getMonthKey()).length;
+      if (txCount < 5) tasks.push({ key: 'catch-up-log', label: '📋 Catch up spending log', priority: 'Medium' });
+      if (monthlySurplus() > 500) tasks.push({ key: 'allocate-surplus', label: `💵 Allocate ${AUD(monthlySurplus())}`, priority: 'High' });
+      if (bills.length === 0) tasks.push({ key: 'add-bills', label: '📅 Add recurring bills', priority: 'High' });
+      const overdue = bills.find(b => b.active && !b.paid && parseInt(b.dueDay) < new Date().getDate());
+      if (overdue) tasks.push({ key: 'pay-overdue', label: `🚨 Pay: ${overdue.name}`, priority: 'Critical' });
+      if (income.myPay === 0 && income.partnerPay === 0) tasks.push({ key: 'setup-income', label: '💰 Set up income', priority: 'Critical' });
+      tasks.push({ key: 'review-last-month', label: '📈 Review last month', priority: 'Medium' });
+      tasks.push({ key: 'wise-transfer', label: '🌍 Use Wise transfers', priority: 'Habit' });
+      return tasks;
+    }
+
+    // Afford It
+    function renderAfford() {
       return `
         <div class="card">
-          <h2>Can You Afford It?</h2>
-          <div class="grid-4" style="margin-bottom: 1.5rem;">
-            <div class="kpi-card"><div class="kpi-label">Monthly Income</div><div class="kpi-value num positive">${AUD(monthly)}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Bills + Debts</div><div class="kpi-value num negative">${AUD(Math.max(0, monthlyExpenses + monthlyDebts))}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Savings (20%)</div><div class="kpi-value num">${AUD(monthly * savingsRate)}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Free Cash</div><div class="kpi-value num ${freeCash >= 0 ? 'positive' : 'negative'}">${AUD(furnitureCash)}</div></div>
+          <h2>Can I Afford It?</h2>
+          <div class="form-row">
+            <div class="form-group"><label>Item</label><input type="text" id="affordItem" placeholder="e.g. Laptop"></div>
+            <div class="form-group"><label>Cost</label><input type="number" id="affordCost" placeholder="0" min="0"></div>
           </div>
-          <div class="form-group"><label>Item Price ($)</label><input type="number" id="affordPrice" placeholder="0" min="0"></div>
-          <div class="form-group"><label>Save For (Months)</label><input type="number" id="affordMonths" placeholder="1" min="1" value="3"></div>
           <button class="btn-primary" onclick="checkAfford()">Check</button>
-          <div id="affordResult" style="margin-top: 1.5rem;"></div>
+          <div id="affordResult"></div>
         </div>
       `;
     }
 
     function checkAfford() {
-      const price = parseFloat(document.getElementById('affordPrice').value) || 0;
-      const months = parseInt(document.getElementById('affordMonths').value) || 3;
-      const monthly = monthlyIncome();
-      const monthlyExpenses = totalMonthlyExpenses();
-      const monthlyDebts = monthlyDebtMin();
-      const savingsRate = 0.20;
-      const freeCash = monthely - monthlyExpenses - monthlyDebts - (monthly * savingsRate);
-      const savingPerMonth = Math.max(0, freeCash);
-      const totalSavings = savingPerMonth * months;
-      const res = document.getElementById('affordResult');
+      const item = document.getElementById('affordItem').value.trim();
+      const cost = parseFloat(document.getElementById('affordCost').value);
+      if (!item || !cost || cost <= 0) { showToast('Fill all fields', 'error'); return; }
 
-      if (monthely === 0) { res.innerHTML = '<p class="text-muted">Set your income first.</span>'; return; }
+      const monthlyFreeSp = Math.max(0, monthlyIncome() * 0.3 - getMonthlyWants());
+      const leftAfter = monthlyFreeSp - cost;
 
-      const canAfford = totalSavings >= price;
-      const monthsNeeded = savingPerMonth > 0 ? Math.ceil(price / savingPerMonth) : Infinity;
+      let verdict = 'NO';
+      let verdictClass = 'no';
+      let message = 'You don\'t have enough free spending.';
 
-      res.innerHTML = `
-        <div style="padding: 1.5rem; border-radius: 12px; background: ${canAfford ? '#F0FDF4' : '#FEF2F2'}; border: 2px solid ${canAfford ? '#10B981' : '#EF4444'}; text-align: center;">
-          <div style="font-size: 48px; margin-bottom: 0.5rem;">${canAfford ? '✓' : '💺'</spam>
-          <h2 style="color: ${canAfford ? '#10B981' : '#EF4444'};">${canAfford ? 'Yes, you can afford it!' : 'Not yet...'}</h2>
-          <p class="text-muted">Saving ${AUD(savingPerMonth)}/mo for ${months} months = <strong>${AUD(totalSavings)}</strong></p>
-          ${!canAfford ? `<p class="text-muted">It will take <strong>${monthsNeeded === Infinity ? '∦' : monthsNeeded + ' months'}</strong> to save for this.</p>` : ''}
+      if (cost <= monthlySurplus()) { verdict = 'YES'; verdictClass = 'yes'; message = 'You can comfortably afford this.'; }
+      else if (cost <= monthlyFreeSp) { verdict = 'MAYBE'; verdictClass = 'maybe'; message = `This is ${Math.round(cost/monthlyFreeSp*100)}% of your Wants budget.`; }
+
+      const resultHTML = `
+        <div class="afford-result ${verdictClass}">
+          <div class="afford-verdict">${verdict}</div>
+          <div style="margin-bottom: 1.5rem;">${message}</div>
+          <div style="text-align: left; display: grid; gap: 1rem; max-width: 400px; margin: 0 auto;">
+            <div class="flex-between"><span>Wants Budget (30%)</span><span class="num">${AUD(monthlyIncome() * 0.3)}</span></div>
+            <div class="flex-between"><span>Already Spent</span><span class="num">${AUD(getMonthlyWants())}</span></div>
+            <div class="flex-between" style="font-weight: 600; padding: 1rem; background: rgba(0,0,0,0.05); border-radius: 6px;"><span>Available</span><span class="num">${AUD(monthlyFreeSp)}</span></div>
+            <div class="flex-between" style="padding-top: 1rem; border-top: 2px solid currentColor;"><span style="font-weight: 600;">After Purchase</span><span class="num" style="font-weight: 600;">${AUD(leftAfter)}</span></div>
+          </div>
         </div>
       `;
+      document.getElementById('affordResult').innerHTML = resultHTML;
     }
 
-    // Render
+    function getMonthlyWants() { const monthKey = getMonthKey(); return transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey && ['Food', 'Transport', 'Entertainment', 'Shopping', 'Other'].includes(t.category)).reduce((s, t) => s + t.amount, 0); }
+
+    // Main Render
     function renderMain() {
-      const main = document.getElementById('mainContent');
-      if (currentTab === 'dashboard')      main.innerHTML = renderDashboard();
-      else if (currentTab === 'transactions') main.innerHTML = renderTx();
-      else if (currentTab === 'bills')       main.innerHTML = renderBills();
-      else if (currentTab === 'debts')       main.innerHTML = renderDebts();
-      else if (currentTab === 'budget')      main.innerHTML = renderBudget();
-      else if (currentTab === 'networth')    main.innerHTML = renderNetWorth();
-      else if (currentTab === 'checklist')   main.innerHTML = renderChecklist();
-      else if (currentTab === 'afford')      main.innerHTML = renderAfford();
-      if (currentTab === 'budget') renderBudgetCharts();
-      if (currentTab === 'debts') {
-        const range = document.getElementById('extraPayment');
-        if (range) { range.addEventListener('input', updateSimulator); updateSimulator(); }
-      }
-      if (currentTab === 'dashboard') renderDashboardCharts();
-    }
-
-    function navTab(tab) {
-      currentTab = tab;
-      renderMain();
-    }
-
-    document.addEventListener('DOM@'checklist': html = renderChecklist(); break;
+      let html = '';
+      switch (currentTab) {
+        case 'dashboard': html = renderDashboard(); break;
+        case 'transactions': html = renderTransactions(); break;
+        case 'bills': html = renderBills(); break;
+        case 'debts': html = renderDebts(); break;
+        case 'budget': html = renderBudget(); break;
+        case 'networth': html = renderNetWorth(); break;
+        case 'checklist': html = renderChecklist(); break;
         case 'afford': html = renderAfford(); break;
       }
 
@@ -1991,7 +1987,16 @@
     function renderAll() { renderHeader(); renderMain(); }
 
     // Init
-    async function init() { renderTabs(); await loadData(); }
+    async function init() {
+      try {
+        renderTabs();
+        await loadData();
+      } catch (e) {
+        console.error('Init error:', e);
+        renderTabs();
+        renderAll();
+      }
+    }
     init();
   </script>
 
