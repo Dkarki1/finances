@@ -994,6 +994,7 @@
     let variableIncome = []; // Track actual variable pay amounts
     let transactions = [];
     let debts = [];
+    let initialDebt = 0; // Track starting debt for progress calculations
     let bills = [];
     let budgets = {};
     let assets = [];
@@ -1012,6 +1013,8 @@
     let paydayChecklistDone = {};   // { fortnightKey: { step: true } }
     let notificationsEnabled = false;
     let currentTab = 'dashboard';
+    let householdMembers = []; // [{ id, name, email }]
+    let householdExpenses = []; // [{ id, name, amount, date, paidBy, splitWith: [ids] }]
     // Helpers
     const AUD = n => '$' + Math.abs(n||0).toLocaleString('en-AU', {minimumFractionDigits:0, maximumFractionDigits:0});
     const toMonthly = (a, f) => {
@@ -1115,6 +1118,8 @@
     async function saveDarkMode() { await fbSet('darkMode', darkMode); }
     async function saveNetWorthMilestones() { await fbSet('netWorthMilestones', netWorthMilestones); }
     async function savePaydayChecklistDone() { await fbSet('paydayChecklistDone', paydayChecklistDone); }
+    async function saveHouseholdMembers() { await fbSet('householdMembers', householdMembers); }
+    async function saveHouseholdExpenses() { await fbSet('householdExpenses', householdExpenses); }
     // Load Data
     async function loadData() {
       showLoading();
@@ -1157,6 +1162,10 @@
         if (nwm) netWorthMilestones = nwm || {};
         const pcd = await fbGet('paydayChecklistDone');
         if (pcd) paydayChecklistDone = pcd || {};
+        const hm = await fbGet('householdMembers');
+        if (hm) householdMembers = Array.isArray(hm) ? hm : [];
+        const he = await fbGet('householdExpenses');
+        if (he) householdExpenses = Array.isArray(he) ? he : [];
         // Record net worth for this month
         recordNetWorthSnapshot();
         recordSavingsRate();
@@ -1205,7 +1214,8 @@
     // Tab Navigation
     const tabs = [
       { id: 'dashboard', label: '📊 Dashboard' },
-      { id: 'payplan', label: '💡 Pay Plan' },
+      { id: 'payplan', label: '💡 Income & Payday' },
+      { id: 'household', label: '🏠 Household Split' },
       { id: 'transactions', label: '💰 Transactions' },
       { id: 'bills', label: '🧾 Bills' },
       { id: 'debts', label: '💳 Debts' },
@@ -1214,17 +1224,11 @@
       { id: 'networth', label: '📈 Net Worth' },
       { id: 'checklist', label: '✅ Checklist' },
       { id: 'afford', label: '🛒 Afford It?' },
-      { id: 'windfall', label: '⚡ Windfall' },
-      { id: 'subscriptions', label: '🔍 Subscriptions' },
       { id: 'calendar', label: '📅 Bill Calendar' },
-      { id: 'savingsrate', label: '📊 Savings Rate' },
-      { id: 'super', label: '🦘 Super' },
-      { id: 'tax', label: '🧾 Tax Estimate' },
-      { id: 'settings', label: '⚙️ Settings' },
-      { id: 'payodaychecklist', label: '⚡ Payday' },
-      { id: 'debtplan', label: '🗓️ Debt Timeline' },
+      { id: 'spending', label: '📊 Spending by Category' },
       { id: 'trends', label: '📉 Trends' },
-      { id: 'currency', label: '💱 Currency' }
+      { id: 'monthlyhealth', label: '🏥 Monthly Health' },
+      { id: 'debtplan', label: '🗓️ Debt Timeline' }
     ];
     function renderTabs() {
       const nav = document.getElementById('tabNav');
@@ -2240,96 +2244,58 @@
 
     // ── PAY PLAN TAB ─────────────────────────────────────────────────────────
     function renderPayPlan() {
-      const surplus = fortnightlySurplus();
-      const goalSavings = totalGoalSavingsPerFortnight();
-      const sorted = getSortedDebts();
-      const focusDebt = sorted[0];
-      const extraForDebt = Math.max(0, surplus - goalSavings);
-      const debtFreeDate = calcDebtFreeDate(extraForDebt);
-      const splits = buildPaySplit(surplus, goalSavings, extraForDebt);
-
-      // Spending leak detection
-      const leaks = detectSpendingLeaks();
+      const monthlyInc = monthlyIncome();
+      const monthlyBills = monthlyBillsTotal();
+      const monthlyDebt = monthlyDebtMin();
+      const monthlySurp = monthlySurplus();
 
       return `
         <div class="card" style="background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 100%); color: white; border-radius: 16px;">
-          <h2 style="color: white; margin-bottom: 0.5rem;">💡 Your Fortnightly Pay Plan</h2>
-          <p style="opacity: 0.8; font-size: 13px; margin-bottom: 1.5rem;">Based on your actual income and bills this month</p>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+          <h2 style="color: white; margin-bottom: 0.5rem;">💰 Your Fixed Income</h2>
+          <p style="opacity: 0.8; font-size: 13px; margin-bottom: 1.5rem;">Simple breakdown: Income → Bills + Debts → What's Left</p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div style="text-align: center; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 1rem;">
-              <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px;">Fortnightly Income</div>
-              <div style="font-size: 22px; font-weight: 700; margin-top: 0.25rem;" class="num">${AUD(fortnightlyIncome())}</div>
+              <div style="font-size: 12px; opacity: 0.7; margin-bottom: 0.5rem;">💰 Monthly Income</div>
+              <div style="font-size: 24px; font-weight: 700;" class="num">${AUD(monthlyInc)}</div>
             </div>
             <div style="text-align: center; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 1rem;">
-              <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px;">Bills + Debts</div>
-              <div style="font-size: 22px; font-weight: 700; margin-top: 0.25rem;" class="num">${AUD(fortnightlyBills() + fortnightlyDebtMin())}</div>
-            </div>
-            <div style="text-align: center; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 1rem;">
-              <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px;">Free Surplus</div>
-              <div style="font-size: 22px; font-weight: 700; margin-top: 0.25rem; color: ${surplus >= 0 ? '#6EE7B7' : '#FCA5A5'};" class="num">${AUD(surplus)}</div>
+              <div style="font-size: 12px; opacity: 0.7; margin-bottom: 0.5rem;">📉 Bills + Debts</div>
+              <div style="font-size: 24px; font-weight: 700;" class="num">${AUD(monthlyBills + monthlyDebt)}</div>
             </div>
           </div>
-          ${debtFreeDate ? `<div style="text-align: center; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem;"><span style="opacity:0.8; font-size:13px;">🏁 Debt-free target: </span><strong style="font-size:16px;">${debtFreeDate}</strong></div>` : ''}
+
+          <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 1rem; text-align: center;">
+            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 0.5rem;">✓ What's Left Each Month</div>
+            <div style="font-size: 28px; font-weight: 700; color: ${monthlySurp >= 0 ? '#6EE7B7' : '#FCA5A5'};" class="num">${AUD(monthlySurp)}</div>
+          </div>
         </div>
 
         <div class="card">
-          <h2>📋 This Fortnight — Exact Instructions</h2>
-          <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 13px;">${fortnightLabel(getFortnightKey())}</p>
-          ${splits.map((s, i) => `
-            <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 10px; background: ${s.bg}; margin-bottom: 0.75rem;">
-              <div style="font-size: 24px; flex-shrink: 0;">${s.icon}</div>
-              <div style="flex: 1;">
-                <div style="font-weight: 600; color: #0F172A;">${s.label}</div>
-                <div style="font-size: 12px; color: #64748B; margin-top: 0.2rem;">${s.desc}</div>
-              </div>
-              <div style="font-size: 18px; font-weight: 700; color: ${s.color};" class="num">${AUD(s.amount)}</div>
+          <h2>📊 Monthly Breakdown</h2>
+          <div style="display: grid; gap: 1rem;">
+            <div class="flex-between" style="padding: 1.25rem; background: #F0F9FF; border-radius: 10px; border-left: 4px solid #3B82F6;">
+              <span style="font-weight: 600;">Total Monthly Income</span>
+              <span class="num" style="font-weight: 700; font-size: 18px; color: #3B82F6;">${AUD(monthlyInc)}</span>
             </div>
-          `).join('')}
-          ${focusDebt && extraForDebt > 0 ? `
-            <div style="margin-top: 1.5rem; padding: 1rem; background: #FFF7ED; border-radius: 10px; border-left: 4px solid #F97316;">
-              <div style="font-weight: 700; color: #C2410C; margin-bottom: 0.5rem;">🔥 FOCUS DEBT: ${focusDebt.name}</div>
-              <div style="font-size: 13px; color: #64748B;">Throw <strong style="color:#C2410C;">${AUD(extraForDebt)}</strong> extra at this debt each fortnight. Every dollar here saves you interest.</div>
+            <div class="flex-between" style="padding: 1.25rem; background: #FFF7ED; border-radius: 10px; border-left: 4px solid #F97316;">
+              <span style="font-weight: 600;">Monthly Bills</span>
+              <span class="num" style="font-weight: 700; color: #F97316;">${AUD(monthlyBills)}</span>
             </div>
-          ` : ''}
-        </div>
-
-        ${leaks.length > 0 ? `
-        <div class="card">
-          <h2>🕳️ Spending Leaks Detected</h2>
-          <p class="text-muted" style="font-size: 13px; margin-bottom: 1rem;">Small recurring costs that silently drain your surplus:</p>
-          ${leaks.map(l => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1rem; border-bottom: 1px solid #E2E8F0;">
-              <div>
-                <div style="font-weight: 600;">${l.name}</div>
-                <div style="font-size: 12px; color: #64748B;">${l.count} transactions · avg ${AUD(l.avg)} each</div>
-              </div>
-              <div style="text-align: right;">
-                <div class="num" style="font-weight: 700; color: #EF4444;">${AUD(l.monthly)}/mo</div>
-                <div style="font-size: 11px; color: #94A3B8;">${AUD(l.annual)}/yr</div>
-              </div>
+            <div class="flex-between" style="padding: 1.25rem; background: #FEF2F2; border-radius: 10px; border-left: 4px solid #EF4444;">
+              <span style="font-weight: 600;">Monthly Debt Payments</span>
+              <span class="num" style="font-weight: 700; color: #EF4444;">${AUD(monthlyDebt)}</span>
             </div>
-          `).join('')}
-          <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #FEF2F2; border-radius: 8px;">
-            <div class="flex-between"><span style="font-weight: 600;">Total annual leakage</span><span class="num" style="font-weight: 700; color: #EF4444;">${AUD(leaks.reduce((s, l) => s + l.annual, 0))}</span></div>
+            <div class="flex-between" style="padding: 1.25rem; background: #F0FDF4; border-radius: 10px; border-left: 4px solid #22C55E; margin-top: 0.5rem;">
+              <span style="font-weight: 600; font-size: 16px;">✓ Available to Spend or Save</span>
+              <span class="num" style="font-weight: 700; font-size: 18px; color: #22C55E;">${AUD(monthlySurp)}</span>
+            </div>
           </div>
         </div>
-        ` : ''}
 
         <div class="card">
-          <h2>💸 Pay Yourself First — How It Works</h2>
-          <div style="display: grid; gap: 0.75rem;">
-            ${[
-              { step: '1', label: 'Debt minimums come out first', color: '#EF4444' },
-              { step: '2', label: 'Goal savings transferred to buckets', color: '#8B5CF6' },
-              { step: '3', label: 'Extra debt attack on focus debt', color: '#F97316' },
-              { step: '4', label: 'Remainder is your spending money', color: '#10B981' }
-            ].map(s => `
-              <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 28px; height: 28px; background: ${s.color}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">${s.step}</div>
-                <div style="font-weight: 500;">${s.label}</div>
-              </div>
-            `).join('')}
-          </div>
+          <h2>✅ That's It!</h2>
+          <p class="text-muted">Your income is fixed. Bills and debts are set up in other tabs. Every month you have <strong>${AUD(monthlySurp)}</strong> left to spend, save, or put towards your financial goals.</p>
         </div>
       `;
     }
@@ -3811,6 +3777,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       switch (currentTab) {
         case 'dashboard': html = renderDashboard(); break;
         case 'payplan': html = renderPayPlan(); break;
+        case 'household': html = renderHousehold(); break;
         case 'transactions': html = renderTransactions(); break;
         case 'bills': html = renderBills(); break;
         case 'debts': html = renderDebts(); break;
@@ -3819,17 +3786,11 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
         case 'networth': html = renderNetWorth(); break;
         case 'checklist': html = renderChecklist(); break;
         case 'afford': html = renderAfford(); break;
-        case 'windfall': html = renderWindfall(); break;
-        case 'subscriptions': html = renderSubscriptions(); break;
         case 'calendar': html = renderBillCalendar(); break;
-        case 'savingsrate': html = renderSavingsRate(); break;
-        case 'super': html = renderSuper(); break;
-        case 'tax': html = renderTax(); break;
-        case 'settings': html = renderSettings(); break;
-        case 'payodaychecklist': html = renderPaydayChecklist(); break;
-        case 'debtplan': html = renderDebtTimeline(); break;
+        case 'spending': html = renderSpendingCategory(); break;
         case 'trends': html = renderTrends(); break;
-        case 'currency': html = renderCurrency(); break;
+        case 'monthlyhealth': html = renderMonthlyHealth(); break;
+        case 'debtplan': html = renderDebtTimeline(); break;
       }
       const content = document.getElementById('mainContent');
       content.innerHTML = html;
@@ -3867,6 +3828,193 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       }
     }
     function renderAll() { renderHeader(); renderMain(); }
+
+    // Household Expense Splitter
+    function renderHousehold() {
+      const totalOwed = householdExpenses.reduce((s, e) => s + e.amount, 0);
+      const memberSplits = {};
+      householdMembers.forEach(m => memberSplits[m.id] = { paid: 0, owes: 0 });
+      householdExpenses.forEach(e => {
+        if (e.paidBy) memberSplits[e.paidBy].paid = (memberSplits[e.paidBy].paid || 0) + e.amount;
+        const perPerson = e.amount / (e.splitWith?.length || 1);
+        e.splitWith?.forEach(id => {
+          memberSplits[id].owes = (memberSplits[id].owes || 0) + perPerson;
+        });
+      });
+      return `
+        <div class="card">
+          <h2>🏠 Household Expense Splitter</h2>
+          <p class="text-muted">Split shared house expenses fairly among roommates</p>
+
+          <div style="background: #F0F9FF; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <h3 style="margin-top: 0;">Add Roommate</h3>
+            <div class="form-row">
+              <input type="text" id="memberName" placeholder="Roommate name" style="flex: 1;">
+              <button class="btn-primary" onclick="addHouseholdMember()" style="flex: 0.3;">Add</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+            <h3>Roommates (${householdMembers.length})</h3>
+            ${householdMembers.length === 0 ? '<p class="text-muted">No roommates added yet</p>' : householdMembers.map(m => `
+              <div class="flex-between" style="padding: 0.75rem; background: #F8FAFC; margin-bottom: 0.5rem; border-radius: 6px;">
+                <span><strong>${m.name}</strong></span>
+                <button onclick="removeHouseholdMember('${m.id}')" style="background: none; border: none; color: #999; cursor: pointer;">✕</button>
+              </div>
+            `).join('')}
+          </div>
+
+          <div style="background: #FEF3C7; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <h3 style="margin-top: 0;">Log Shared Expense</h3>
+            <div class="form-row">
+              <input type="text" id="expenseName" placeholder="e.g. Rent, WiFi, Groceries" style="flex: 1;">
+              <input type="number" id="expenseAmount" placeholder="Amount" min="0" style="flex: 0.5;">
+              <button class="btn-primary" onclick="addHouseholdExpense()" style="flex: 0.3;">Log</button>
+            </div>
+          </div>
+
+          ${householdExpenses.length === 0 ? '<p class="text-muted" style="text-align: center; padding: 2rem;">No expenses logged yet</p>' : `
+            <div style="background: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1.5rem;">
+              <h3 style="margin-top: 0; margin-bottom: 1.5rem;">Settlement Summary</h3>
+              ${householdMembers.map(m => {
+                const splits = memberSplits[m.id] || { paid: 0, owes: 0 };
+                const balance = splits.paid - splits.owes;
+                return `
+                  <div style="padding: 1rem; background: ${balance > 0 ? '#F0FDF4' : '#FEF2F2'}; border-radius: 6px; margin-bottom: 0.75rem;">
+                    <div class="flex-between" style="margin-bottom: 0.5rem;">
+                      <span style="font-weight: 600;">${m.name}</span>
+                      <span class="num" style="font-weight: 700; color: ${balance > 0 ? '#22C55E' : '#EF4444'};">${balance > 0 ? 'Gets back' : 'Owes'} ${AUD(Math.abs(balance))}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">Paid: ${AUD(splits.paid)} | Owes: ${AUD(splits.owes)}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+    async function addHouseholdMember() {
+      const name = document.getElementById('memberName')?.value.trim();
+      if (!name) { showToast('Enter name', 'error'); return; }
+      householdMembers.push({ id: Date.now().toString(), name });
+      document.getElementById('memberName').value = '';
+      await saveHouseholdMembers();
+      renderMain();
+    }
+    async function removeHouseholdMember(id) {
+      householdMembers = householdMembers.filter(m => m.id !== id);
+      await saveHouseholdMembers();
+      renderMain();
+    }
+    async function addHouseholdExpense() {
+      const name = document.getElementById('expenseName')?.value.trim();
+      const amount = parseFloat(document.getElementById('expenseAmount')?.value);
+      if (!name || !amount || amount <= 0) { showToast('Fill all fields', 'error'); return; }
+      householdExpenses.push({ id: Date.now().toString(), name, amount, date: today(), paidBy: householdMembers[0]?.id, splitWith: householdMembers.map(m => m.id) });
+      document.getElementById('expenseName').value = '';
+      document.getElementById('expenseAmount').value = '';
+      await saveHouseholdExpenses();
+      renderMain();
+    }
+
+    // Spending by Category
+    function renderSpendingCategory() {
+      const monthKey = getMonthKey();
+      const monthExpenses = transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
+      const byCat = {};
+      monthExpenses.forEach(t => {
+        const cat = t.category || 'Other';
+        byCat[cat] = (byCat[cat] || 0) + t.amount;
+      });
+      const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+      const total = sorted.reduce((s, [,a]) => s + a, 0);
+      return `
+        <div class="card">
+          <h2>📊 Spending by Category — ${monthLabel}</h2>
+          <p class="text-muted">Where your money actually goes</p>
+
+          ${sorted.length === 0 ? '<p class="text-muted" style="text-align: center; padding: 2rem;">No expenses this month</p>' : `
+            <div style="display: grid; gap: 1rem;">
+              ${sorted.map(([cat, amt]) => {
+                const pct = (amt / total) * 100;
+                return `
+                  <div style="background: #F8FAFC; padding: 1.25rem; border-radius: 8px;">
+                    <div class="flex-between" style="margin-bottom: 0.75rem;">
+                      <span style="font-weight: 600;">${cat}</span>
+                      <span class="num" style="font-weight: 700;">${AUD(amt)}</span>
+                    </div>
+                    <div class="progress" style="height: 8px; margin-bottom: 0.5rem;">
+                      <div class="progress-fill" style="width: ${pct}%;"></div>
+                    </div>
+                    <div class="flex-between" style="font-size: 12px; color: #666;">
+                      <span>${Math.round(pct)}% of spending</span>
+                      <span>${monthExpenses.filter(t => t.category === cat).length} transactions</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // Monthly Financial Health Check
+    function renderMonthlyHealth() {
+      const monthKey = getMonthKey();
+      const inc = monthlyIncome();
+      const bills = monthlyBillsTotal();
+      const debt = monthlyDebtMin();
+      const exp = transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey).reduce((s, t) => s + t.amount, 0);
+      const surplus = inc - exp;
+      const debtProgress = totalDebt() > 0 ? ((initialDebt || totalDebt()) - totalDebt()) / (initialDebt || 1) * 100 : 0;
+      return `
+        <div class="card" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border-radius: 16px;">
+          <h2 style="color: white; margin-bottom: 0.5rem;">🏥 Monthly Financial Health</h2>
+          <p style="opacity: 0.8; font-size: 13px;">Your financial snapshot for ${monthLabel}</p>
+        </div>
+
+        <div class="card">
+          <h2>📈 This Month's Metrics</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+            <div style="background: #F0F9FF; padding: 1.25rem; border-radius: 8px; border-left: 4px solid #3B82F6;">
+              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Income</div>
+              <div class="num" style="font-size: 20px; font-weight: 700; color: #3B82F6;">${AUD(inc)}</div>
+            </div>
+            <div style="background: #FEF3C7; padding: 1.25rem; border-radius: 8px; border-left: 4px solid #F59E0B;">
+              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Expenses</div>
+              <div class="num" style="font-size: 20px; font-weight: 700; color: #D97706;">${AUD(exp)}</div>
+            </div>
+            <div style="background: #F0FDF4; padding: 1.25rem; border-radius: 8px; border-left: 4px solid #22C55E;">
+              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Surplus</div>
+              <div class="num" style="font-size: 20px; font-weight: 700; color: #16A34A;">${AUD(surplus)}</div>
+            </div>
+            <div style="background: #F5F3FF; padding: 1.25rem; border-radius: 8px; border-left: 4px solid #8B5CF6;">
+              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Debt Paid Down</div>
+              <div class="num" style="font-size: 20px; font-weight: 700; color: #7C3AED;">${Math.round(debtProgress)}%</div>
+            </div>
+          </div>
+
+          <h3>💪 Health Status</h3>
+          <div style="display: grid; gap: 0.75rem;">
+            <div class="flex-between" style="padding: 1rem; background: ${surplus >= 0 ? '#F0FDF4' : '#FEF2F2'}; border-radius: 8px;">
+              <span>Savings Status</span>
+              <span style="font-weight: 700; color: ${surplus >= 0 ? '#22C55E' : '#EF4444'};">${surplus >= 0 ? '✓ Saving' : '⚠ Overspending'}</span>
+            </div>
+            <div class="flex-between" style="padding: 1rem; background: ${bills + debt <= inc * 0.7 ? '#F0FDF4' : '#FEF2F2'}; border-radius: 8px;">
+              <span>Bills + Debt Coverage</span>
+              <span style="font-weight: 700; color: ${bills + debt <= inc * 0.7 ? '#22C55E' : '#EF4444'};">${Math.round((bills + debt) / inc * 100)}% of income</span>
+            </div>
+            <div class="flex-between" style="padding: 1rem; background: ${totalDebt() > 0 ? '#F5F3FF' : '#F0FDF4'}; border-radius: 8px;">
+              <span>Debt Progress</span>
+              <span style="font-weight: 700; color: #7C3AED;">${totalDebt() > 0 ? `${Math.round(debtProgress)}% progress` : '✓ Debt-free'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     // Init
     async function init() {
       try {
