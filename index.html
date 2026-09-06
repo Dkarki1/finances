@@ -6530,8 +6530,12 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       const inc = monthlyIncome();
       const bills = monthlyBillsTotal();
       const debt = monthlyDebtMin();
-      const exp = transactions.filter(t => isSpend(t) && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey).reduce((s, t) => s + t.amount, 0);
-      const surplus = inc - exp;
+      const inMonth = transactions.filter(t => getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
+      const exp = inMonth.filter(isSpend).reduce((s, t) => s + t.amount, 0);
+      // Debt payments aren't spending, but the money is still gone — so they
+      // come off income before anything calls the remainder a surplus.
+      const debtPaid = inMonth.filter(isDebtPayment).reduce((s, t) => s + t.amount, 0);
+      const surplus = inc - exp - debtPaid;
       const debtProgress = totalDebt() > 0 ? ((initialDebt || totalDebt()) - totalDebt()) / (initialDebt || 1) * 100 : 0;
       return `
         <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%); color: white; border-radius: 16px;">
@@ -6547,7 +6551,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
               <div class="num" style="font-size: 20px; font-weight: 700; color: var(--accent);">${AUD(inc)}</div>
             </div>
             <div style="background: var(--surface); padding: 1.25rem; border-radius: 8px; border-left: 4px solid var(--warning);">
-              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Expenses</div>
+              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Spent${debtPaid > 0 ? ` <span style="font-weight:400;">+ ${AUD(debtPaid)} to debt</span>` : ''}</div>
               <div class="num" style="font-size: 20px; font-weight: 700; color: #D97706;">${AUD(exp)}</div>
             </div>
             <div style="background: var(--surface); padding: 1.25rem; border-radius: 8px; border-left: 4px solid var(--success);">
