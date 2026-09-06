@@ -23,55 +23,78 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
+    /* ══════════════════════════════════════════════════════════════════
+     * Design tokens
+     *
+     * There were twenty-three colours here, including five oranges and three
+     * greens that no one could tell apart, and every card picked whichever
+     * felt right at the time. That is most of why the app looked busy.
+     *
+     * The palette below is deliberately small: paper, ink, one accent, and
+     * three semantic colours reserved for numbers that mean something. The
+     * old names are kept as aliases at the bottom so six thousand lines of
+     * inline styles keep working — new work should use the short names.
+     * ══════════════════════════════════════════════════════════════════ */
     :root {
-      --bg: #F5F5F7;
+      /* paper */
+      --bg: #F7F7F8;
       --card: #FFFFFF;
-      --surface: #F2F2F7;
-      --text: #1D1D1F;
-      --text-muted: #6E6E73;
-      --text-dim: #8E8E93;
-      --border: #D2D2D7;
-      --border-soft: #E8E8ED;
-      --accent: #0F95A8;
-      --success: #34C759;
-      --success-dark: #059669;
-      --success-darker: #1B7F3A;
-      --danger: #FF3B30;
-      --danger-dark: #DC2626;
-      --danger-soft: #FEF2F2;
-      --warning: #FF9500;
-      --warning-dark: #F97316;
-      --warning-alt: #EA580C;
-      --warning-text: #9A5B00;
-      --warning-text2: #B45309;
-      --purple: #5E5CE6;
-      --purple-dark: #7C3AED;
-      --info: #1D4ED8;
+      --surface: #F2F2F4;
+      --border: #E4E4E7;
+      --border-strong: #D3D3D8;
+
+      /* ink — three weights, no more */
+      --text: #18181B;
+      --text-muted: #6B6B73;
+      --text-dim: #9A9AA2;
+
+      /* one accent */
+      --accent: #0F7B8A;
+      --accent-soft: #E6F3F5;
+
+      /* semantic: for numbers, never for decoration */
+      --pos: #12805C;
+      --neg: #C0362C;
+      --warn: #A96208;
+      --pos-soft: #E9F6F1;
+      --neg-soft: #FCEEEC;
+      --warn-soft: #FBF2E4;
+
+      /* scale */
+      --sp-1: 0.25rem; --sp-2: 0.5rem;  --sp-3: 0.75rem; --sp-4: 1rem;
+      --sp-5: 1.5rem;  --sp-6: 2rem;    --sp-7: 3rem;
+      --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-full: 999px;
+      --shadow: 0 1px 2px rgba(24,24,27,.04), 0 1px 3px rgba(24,24,27,.06);
+
+      /* type: four sizes carry the whole app */
+      --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 20px; --t-xl: 32px;
+
+      /* aliases kept so existing inline styles keep working */
+      --border-soft: var(--border);
+      --success: var(--pos); --success-dark: var(--pos); --success-darker: var(--pos);
+      --danger: var(--neg);  --danger-dark: var(--neg);  --danger-soft: var(--neg-soft);
+      --warning: var(--warn); --warning-dark: var(--warn); --warning-alt: var(--warn);
+      --warning-text: var(--warn); --warning-text2: var(--warn);
+      --purple: var(--accent); --purple-dark: var(--accent); --info: var(--accent);
     }
     body.dark {
-      --bg: #1D1D1F;
-      --card: #2C2C2E;
-      --surface: #3A3A3C;
-      --text: #E8E8ED;
-      --text-muted: #AEAEB2;
-      --text-dim: #8E8E93;
-      --border: #3A3A3C;
-      --border-soft: #3A3A3C;
-      --accent: #409CFF;
-      --success: #34C759;
-      --success-dark: #4ADE80;
-      --success-darker: #4ADE80;
-      --danger: #FF453A;
-      --danger-dark: #FF6B6B;
-      --danger-soft: #3A2A2A;
-      --warning: #FF9F0A;
-      --warning-dark: #FF9F0A;
-      --warning-alt: #FF9F0A;
-      --warning-text: #FFD60A;
-      --warning-text2: #FFD60A;
-      --purple: #7C7AFF;
-      --purple-dark: #A78BFA;
-      --info: #60A5FA;
+      --bg: #131316;
+      --card: #1C1C20;
+      --surface: #26262B;
+      --border: #303036;
+      --border-strong: #3C3C44;
+      --text: #EDEDF0;
+      --text-muted: #A0A0AA;
+      --text-dim: #74747E;
+      --accent: #3EB8CB;
+      --accent-soft: #14313A;
+      --pos: #3DD68C;
+      --neg: #FF6B60;
+      --warn: #F0B24A;
+      --pos-soft: #102A22;
+      --neg-soft: #2E1A18;
+      --warn-soft: #2B2113;
+      --shadow: 0 1px 2px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.22);
     }
 
     * {
@@ -81,8 +104,8 @@
     }
     html, body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
-      background: #F5F5F7;
-      color: #1D1D1F;
+      background: var(--bg);
+      color: var(--text);
     }
     body {
       line-height: 1.6;
@@ -95,7 +118,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: #FFFFFF;
+      background: var(--card);
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
       padding: 1rem 1.5rem;
       display: flex;
@@ -128,7 +151,7 @@
     .header-title h1 {
       font-size: 20px;
       font-weight: 700;
-      color: #1D1D1F;
+      color: var(--text);
     }
     .header-stats {
       display: flex;
@@ -140,7 +163,7 @@
     }
     .stat-label {
       font-size: 11px;
-      color: #6E6E73;
+      color: var(--text-muted);
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -149,13 +172,13 @@
     .stat-value {
       font-size: 18px;
       font-weight: 700;
-      color: #1D1D1F;
+      color: var(--text);
     }
     .stat-value.positive {
-      color: #34C759;
+      color: var(--pos);
     }
     .stat-value.negative {
-      color: #FF3B30;
+      color: var(--neg);
     }
     @media (max-width: 768px) {
       header {
@@ -353,7 +376,7 @@
       --t-lead:    16px;   /* card titles */
       --t-figure:  22px;   /* the number a card exists to show */
       --t-hero:    30px;
-      --ink-soft:  #6E6E73;
+      --ink-soft:  var(--text-muted);
     }
 
     @media (max-width: 768px) {
@@ -514,8 +537,8 @@
 
     /* Nav Tabs */
     nav.tabs {
-      background: #FFFFFF;
-      border-bottom: 1px solid #D2D2D7;
+      background: var(--card);
+      border-bottom: 1px solid var(--border-strong);
       overflow-x: auto;
       padding: 0 1.5rem;
       display: flex;
@@ -528,7 +551,7 @@
       height: 4px;
     }
     nav.tabs::-webkit-scrollbar-thumb {
-      background: #D2D2D7;
+      background: var(--border-strong);
       border-radius: 2px;
     }
     .tab {
@@ -538,29 +561,28 @@
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
-      color: #6E6E73;
+      color: var(--text-muted);
       white-space: nowrap;
       border-bottom: 3px solid transparent;
       transition: all 0.3s ease;
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
     }
     .tab:hover {
-      color: #1D1D1F;
+      color: var(--text);
     }
     .tab.active {
-      color: #0F95A8;
-      border-bottom-color: #0F95A8;
+      color: var(--accent);
+      border-bottom-color: var(--accent);
     }
     .tab-divider {
       display: inline-block;
       width: 1px;
       align-self: center;
       height: 20px;
-      background: #D2D2D7;
+      background: var(--border-strong);
       margin: 0 0.25rem;
       flex-shrink: 0;
     }
-    body.dark .tab-divider { background: #38383A; }
     /* Main Content */
     main {
       padding: 2rem 1.5rem;
@@ -574,7 +596,7 @@
     }
     /* Card */
     .card {
-      background: #FFFFFF;
+      background: var(--card);
       border-radius: 16px;
       padding: 1.5rem;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
@@ -584,12 +606,12 @@
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 1rem;
-      color: #1D1D1F;
+      color: var(--text);
     }
     .card h3 {
       font-size: 16px;
       font-weight: 600;
-      color: #1D1D1F;
+      color: var(--text);
       margin-bottom: 0.75rem;
     }
     /* Grid */
@@ -626,7 +648,7 @@
     }
     /* KPI Cards */
     .kpi-card {
-      background: #FFFFFF;
+      background: var(--card);
       border-radius: 16px;
       padding: 1.5rem;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
@@ -634,7 +656,7 @@
     }
     .kpi-label {
       font-size: 12px;
-      color: #6E6E73;
+      color: var(--text-muted);
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -643,33 +665,33 @@
     .kpi-value {
       font-size: 28px;
       font-weight: 700;
-      color: #1D1D1F;
+      color: var(--text);
     }
     .kpi-value.positive {
-      color: #34C759;
+      color: var(--pos);
     }
     .kpi-value.negative {
-      color: #FF3B30;
+      color: var(--neg);
     }
     /* Form Controls */
     input, select, textarea {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid #D2D2D7;
+      border: 1px solid var(--border-strong);
       border-radius: 8px;
-      background: #FFFFFF;
-      color: #1D1D1F;
+      background: var(--card);
+      color: var(--text);
       font-size: 14px;
       transition: border-color 0.3s ease;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
-      border-color: #0F95A8;
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
     }
     input::placeholder {
-      color: #8E8E93;
+      color: var(--text-dim);
     }
     textarea {
       resize: vertical;
@@ -683,7 +705,7 @@
       font-size: 13px;
       font-weight: 500;
       margin-bottom: 0.5rem;
-      color: #1D1D1F;
+      color: var(--text);
     }
     .form-row {
       display: grid;
@@ -711,33 +733,33 @@
       gap: 0.5rem;
     }
     .btn-primary {
-      background: #0F95A8;
+      background: var(--accent);
       color: white;
     }
     .btn-primary:hover {
-      background: #0066CC;
+      background: var(--accent);
       box-shadow: 0 2px 8px rgba(10, 132, 255, 0.18);
     }
     .btn-secondary {
-      background: #D2D2D7;
-      color: #1D1D1F;
+      background: var(--border-strong);
+      color: var(--text);
     }
     .btn-secondary:hover {
-      background: #AEAEB2;
+      background: var(--text-muted);
     }
     .btn-success {
-      background: #34C759;
+      background: var(--pos);
       color: white;
     }
     .btn-success:hover {
-      background: #059669;
+      background: var(--pos);
     }
     .btn-danger {
-      background: #FF3B30;
+      background: var(--neg);
       color: white;
     }
     .btn-danger:hover {
-      background: #DC2626;
+      background: var(--neg);
     }
     .btn-small {
       padding: 0.5rem 1rem;
@@ -759,12 +781,14 @@
       margin-bottom: 1rem;
       flex-wrap: wrap;
     }
+    /* Superseded below by the segmented-control styling, which every in-page
+       toggle now shares with the sub-navigation. */
     .toggle-btn {
       flex: 1;
       min-width: 200px;
       padding: 0.75rem 1rem;
-      background: #D2D2D7;
-      color: #6E6E73;
+      background: var(--border-strong);
+      color: var(--text-muted);
       border: none;
       border-radius: 8px;
       font-weight: 500;
@@ -773,31 +797,31 @@
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
     }
     .toggle-btn.active {
-      background: #0F95A8;
+      background: var(--accent);
       color: white;
     }
     /* Progress Bar */
     .progress {
       width: 100%;
       height: 8px;
-      background: #D2D2D7;
+      background: var(--border-strong);
       border-radius: 4px;
       overflow: hidden;
       margin: 0.75rem 0;
     }
     .progress-fill {
       height: 100%;
-      background: #0F95A8;
+      background: var(--accent);
       transition: width 0.3s ease;
     }
     .progress-fill.success {
-      background: #34C759;
+      background: var(--pos);
     }
     .progress-fill.warning {
-      background: #FF9500;
+      background: var(--warn);
     }
     .progress-fill.danger {
-      background: #FF3B30;
+      background: var(--neg);
     }
     /* Table */
     table {
@@ -808,29 +832,29 @@
     th {
       text-align: left;
       padding: 1rem;
-      background: #E8E8ED;
+      background: var(--border);
       font-weight: 600;
-      color: #1D1D1F;
-      border-bottom: 1px solid #D2D2D7;
+      color: var(--text);
+      border-bottom: 1px solid var(--border-strong);
     }
     td {
       padding: 1rem;
-      border-bottom: 1px solid #D2D2D7;
+      border-bottom: 1px solid var(--border-strong);
     }
     tr:last-child td {
       border-bottom: none;
     }
     tr:hover {
-      background: #F5F5F7;
+      background: var(--bg);
     }
     .amount {
       font-weight: 600;
     }
     .amount.income {
-      color: #34C759;
+      color: var(--pos);
     }
     .amount.expense {
-      color: #FF3B30;
+      color: var(--neg);
     }
     /* Badge */
     .badge {
@@ -842,27 +866,27 @@
       white-space: nowrap;
     }
     .badge-neutral {
-      background: #D2D2D7;
-      color: #6E6E73;
+      background: var(--border-strong);
+      color: var(--text-muted);
     }
     .badge-success {
-      background: #F2F2F7;
-      color: #1B7F3A;
+      background: var(--surface);
+      color: var(--pos);
     }
     .badge-danger {
-      background: #F2F2F7;
-      color: #FF3B30;
+      background: var(--surface);
+      color: var(--neg);
     }
     .badge-warning {
-      background: #F2F2F7;
-      color: #9A5B00;
+      background: var(--surface);
+      color: var(--warn);
     }
     /* Toast */
     .toast {
       position: fixed;
       bottom: 1.5rem;
       right: 1.5rem;
-      background: #1D1D1F;
+      background: var(--text);
       color: white;
       padding: 1rem 1.5rem;
       border-radius: 8px;
@@ -882,10 +906,10 @@
       }
     }
     .toast.success {
-      background: #34C759;
+      background: var(--pos);
     }
     .toast.error {
-      background: #FF3B30;
+      background: var(--neg);
     }
     /* Loading Overlay */
     .loading {
@@ -908,8 +932,8 @@
     .spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid #D2D2D7;
-      border-top-color: #0F95A8;
+      border: 3px solid var(--border-strong);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -921,7 +945,7 @@
       display: none !important;
     }
     .text-muted {
-      color: #6E6E73;
+      color: var(--text-muted);
       font-size: 14px;
     }
     .text-center {
@@ -934,10 +958,10 @@
     }
     /* Debt Card */
     .debt-card {
-      background: #FFFFFF;
+      background: var(--card);
       border-radius: 16px;
       padding: 1.5rem;
-      border-left: 4px solid #0F95A8;
+      border-left: 4px solid var(--accent);
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
       margin-bottom: 1rem;
     }
@@ -961,23 +985,23 @@
       gap: 1rem;
       padding: 1rem;
       border-radius: 8px;
-      border: 1px solid #D2D2D7;
+      border: 1px solid var(--border-strong);
       margin-bottom: 0.75rem;
       transition: all 0.3s ease;
     }
     .checklist-task.done {
-      background: #F2F2F7;
-      border-color: #34C759;
+      background: var(--surface);
+      border-color: var(--pos);
       opacity: 0.7;
     }
     .checklist-task.done .checklist-label {
       text-decoration: line-through;
-      color: #8E8E93;
+      color: var(--text-dim);
     }
     .checklist-checkbox {
       width: 20px;
       height: 20px;
-      border: 2px solid #D2D2D7;
+      border: 2px solid var(--border-strong);
       border-radius: 4px;
       cursor: pointer;
       display: flex;
@@ -988,18 +1012,18 @@
       transition: all 0.3s ease;
     }
     .checklist-checkbox:hover {
-      border-color: #0F95A8;
+      border-color: var(--accent);
     }
     .checklist-checkbox.checked {
-      background: #34C759;
-      border-color: #34C759;
+      background: var(--pos);
+      border-color: var(--pos);
       color: white;
       font-weight: bold;
     }
     .checklist-label {
       flex: 1;
       font-weight: 500;
-      color: #1D1D1F;
+      color: var(--text);
     }
     /* Afford It */
     .afford-result {
@@ -1010,16 +1034,16 @@
       border-left: 4px solid;
     }
     .afford-result.yes {
-      background: #F2F2F7;
-      border-color: #34C759;
+      background: var(--surface);
+      border-color: var(--pos);
     }
     .afford-result.maybe {
-      background: #F2F2F7;
-      border-color: #FF9500;
+      background: var(--surface);
+      border-color: var(--warn);
     }
     .afford-result.no {
-      background: #F2F2F7;
-      border-color: #FF3B30;
+      background: var(--surface);
+      border-color: var(--neg);
     }
     .afford-verdict {
       font-size: 32px;
@@ -1027,13 +1051,13 @@
       margin-bottom: 1rem;
     }
     .afford-result.yes .afford-verdict {
-      color: #34C759;
+      color: var(--pos);
     }
     .afford-result.maybe .afford-verdict {
-      color: #FF9500;
+      color: var(--warn);
     }
     .afford-result.no .afford-verdict {
-      color: #FF3B30;
+      color: var(--neg);
     }
     /* Category Grid */
     .category-grid {
@@ -1043,7 +1067,7 @@
       margin-bottom: 1.5rem;
     }
     .category-item {
-      background: #F5F5F7;
+      background: var(--bg);
       border-radius: 8px;
       padding: 1rem;
       display: flex;
@@ -1052,7 +1076,7 @@
     }
     .category-item label {
       font-weight: 500;
-      color: #1D1D1F;
+      color: var(--text);
       margin-bottom: 0;
     }
     .category-item input {
@@ -1067,78 +1091,46 @@
       display: inline-block;
     }
     .bill-status.paid {
-      background: #F2F2F7;
-      color: #1B7F3A;
+      background: var(--surface);
+      color: var(--pos);
     }
     .bill-status.due {
-      background: #F2F2F7;
-      color: #9A5B00;
+      background: var(--surface);
+      color: var(--warn);
     }
     .bill-status.overdue {
-      background: #F2F2F7;
-      color: #FF3B30;
+      background: var(--surface);
+      color: var(--neg);
     }
     .bill-status.inactive {
-      background: #D2D2D7;
-      color: #6E6E73;
+      background: var(--border-strong);
+      color: var(--text-muted);
     }
 
     /* Milestone badge */
-    .milestone-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 12px; font-weight: 600; background: #F2F2F7; color: #1D1D1F; border: 1px solid #D2D2D7; margin: 0.25rem; }
+    .milestone-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); margin: 0.25rem; }
 
-    /* Dark Mode */
-    body.dark { background: #1D1D1F; color: #D2D2D7; }
-    body.dark header, body.dark nav.tabs { background: #2C2C2E; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-    body.dark .card, body.dark .kpi-card, body.dark .debt-card { background: #2C2C2E; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-    body.dark .card h2, body.dark .card h3, body.dark .kpi-value, body.dark .header-title h1, body.dark th, body.dark .checklist-label { color: #E8E8ED; }
-    body.dark input, body.dark select, body.dark textarea { background: #1D1D1F; border-color: #3A3A3C; color: #D2D2D7; }
-    body.dark th { background: #1D1D1F; color: #AEAEB2; }
-    body.dark tr:hover { background: #243147; }
-    body.dark td { border-color: #3A3A3C; border-bottom-color: #3A3A3C; }
-    body.dark .tab { color: #8E8E93; }
-    body.dark .tab.active { color: #409CFF; border-bottom-color: #409CFF; }
-    body.dark .tab:hover { color: #D2D2D7; }
-    body.dark .btn-secondary { background: #3A3A3C; color: #D2D2D7; }
-    body.dark .btn-secondary:hover { background: #48484A; }
-    body.dark .text-muted { color: #8E8E93; }
-    body.dark .progress { background: #3A3A3C; }
-    body.dark .category-item { background: #1D1D1F; }
-    body.dark .stat-label { color: #8E8E93; }
-    body.dark .stat-value { color: #E8E8ED; }
-    body.dark .toggle-btn { background: #3A3A3C; color: #8E8E93; }
-    body.dark .toggle-btn.active { background: #0F95A8; color: white; }
-    body.dark .checklist-task { border-color: #3A3A3C; }
-    body.dark .checklist-checkbox { background: #1D1D1F; border-color: #48484A; }
-    body.dark nav.tabs { border-color: #3A3A3C; }
-    body.dark .badge-neutral { background: #3A3A3C; color: #8E8E93; }
-    body.dark .bill-status.inactive { background: #3A3A3C; color: #8E8E93; }
-    body.dark .checklist-task.done { background: #0D2B1D; border-color: #14532D; }
-    /* Dark-mode fix for inline-styled subtle boxes used throughout (these can't be reached by class selectors) */
-    body.dark [style*="background: #F2F2F7" i],
-    body.dark [style*="background:#F2F2F7" i],
-    body.dark [style*="background: #F5F5F7" i],
-    body.dark [style*="background:#F5F5F7" i],
-    body.dark [style*="background: #F5F5F5" i],
-    body.dark [style*="background:#F5F5F5" i] {
-      background: #1D1D1F !important;
-    }
-    body.dark [style*="background: #FFFFFF" i],
-    body.dark [style*="background:#FFFFFF" i] {
-      background: #2C2C2E !important;
-    }
-    body.dark [style*="background: #FEF2F2" i],
-    body.dark [style*="background:#FEF2F2" i] {
-      background: #2B1515 !important;
-    }
+    /* ------------------------------------------------------------------
+     * Dark mode
+     *
+     * There were thirty-odd override rules here, one per component, because
+     * the base rules had light greys baked into them. They also included
+     * three attribute selectors matching on inline style strings, which is
+     * as fragile as it sounds. Every base rule now reads its colour from a
+     * token, and the token block above swaps the whole palette, so all of
+     * that is gone. Two exceptions remain, for shadows that need to be
+     * heavier on a dark ground.
+     * ------------------------------------------------------------------ */
+    body.dark header, body.dark nav.tabs { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+    body.dark .card, body.dark .kpi-card, body.dark .debt-card { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
     /* Bill Calendar */
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-    .cal-day { min-height: 68px; background: #F5F5F7; border-radius: 8px; padding: 5px 6px; font-size: 12px; }
-    body.dark .cal-day { background: #1D1D1F; }
-    .cal-day.today { border: 2px solid #0F95A8; }
+    .cal-day { min-height: 68px; background: var(--bg); border-radius: 8px; padding: 5px 6px; font-size: 12px; }
+    .cal-day.today { border: 2px solid var(--accent); }
     .cal-day.other-month { opacity: 0.3; }
-    .cal-day-num { font-weight: 700; font-size: 12px; color: #6E6E73; margin-bottom: 2px; }
-    body.dark .cal-day-num { color: #8E8E93; }
-    .cal-day.today .cal-day-num { color: #0F95A8; }
+    .cal-day-num { font-weight: 700; font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+    .cal-day.today .cal-day-num { color: var(--accent); }
     .cal-bill { font-size: 9px; padding: 1px 3px; border-radius: 3px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
     /* Savings rate ring */
     .rate-ring { width: 130px; height: 130px; position: relative; margin: 0 auto; }
@@ -1148,7 +1140,7 @@
     /* Auth Screen */
     #authScreen {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, #1D1D1F 0%, #2C2C2E 100%);
+      background: linear-gradient(160deg, #16161A 0%, #1E1E24 100%);
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; z-index: 9999; gap: 1.5rem; padding: 1.5rem;
       overflow-y: auto;
@@ -1158,18 +1150,18 @@
       display: flex; align-items: center; justify-content: center;
       color: white; font-weight: 700; font-size: 28px; margin-bottom: 0.25rem; }
     .auth-title { color: white; font-size: 22px; font-weight: 700; }
-    .auth-sub { color: #8E8E93; font-size: 14px; margin-top: -0.75rem; text-align: center; }
+    .auth-sub { color: var(--text-dim); font-size: 14px; margin-top: -0.75rem; text-align: center; }
     .auth-card { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 0.75rem; }
     .auth-input {
       width: 100%; padding: 0.85rem 1rem; border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06);
       color: white; font-size: 15px; font-family: inherit;
     }
-    .auth-input::placeholder { color: #8E8E93; }
-    .auth-input:focus { outline: none; border-color: #0F95A8; }
+    .auth-input::placeholder { color: var(--text-dim); }
+    .auth-input:focus { outline: none; border-color: var(--accent); }
     .auth-btn-primary {
       width: 100%; padding: 0.85rem 1rem; border-radius: 10px; border: none;
-      background: #0F95A8; color: white; font-size: 15px; font-weight: 600;
+      background: var(--accent); color: white; font-size: 15px; font-weight: 600;
       cursor: pointer; font-family: inherit; transition: opacity 0.15s;
     }
     .auth-btn-primary:hover { opacity: 0.88; }
@@ -1182,13 +1174,262 @@
       transition: background 0.15s;
     }
     .auth-btn-google:hover { background: rgba(255,255,255,0.1); }
-    .auth-divider { display: flex; align-items: center; gap: 0.75rem; color: #6E6E73; font-size: 12px; }
+    .auth-divider { display: flex; align-items: center; gap: 0.75rem; color: var(--text-muted); font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.12); }
-    .auth-switch { color: #8E8E93; font-size: 13px; text-align: center; }
-    .auth-switch a, .auth-forgot { color: #0F95A8; cursor: pointer; text-decoration: none; }
+    .auth-switch { color: var(--text-dim); font-size: 13px; text-align: center; }
+    .auth-switch a, .auth-forgot { color: var(--accent); cursor: pointer; text-decoration: none; }
     .auth-switch a:hover, .auth-forgot:hover { text-decoration: underline; }
-    .auth-error { color: #FF3B30; font-size: 13px; font-weight: 500; min-height: 18px; text-align: center; }
+    .auth-error { color: var(--neg); font-size: 13px; font-weight: 500; min-height: 18px; text-align: center; }
     .auth-forgot { font-size: 12px; text-align: right; display: block; margin-top: -0.4rem; }
+
+    /* ══════════════════════════════════════════════════════════════════
+     * Design refresh
+     *
+     * Loaded last on purpose. The components below were written with
+     * hardcoded hex values over about a year, each one picking its own
+     * greys and its own padding, and the result read as busy no matter
+     * what was on the page. This block re-specifies the handful of things
+     * that appear on every screen — card, heading, number, badge, nav —
+     * in terms of the tokens, so the app looks like one app.
+     *
+     * Restraint is the whole idea: one accent, one card, four type sizes,
+     * and colour reserved for numbers that mean something.
+     * ══════════════════════════════════════════════════════════════════ */
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      letter-spacing: -0.011em;
+    }
+
+    /* One card. Border does the separating; the shadow is almost nothing. */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-5);
+      box-shadow: var(--shadow);
+      margin-bottom: var(--sp-4);
+    }
+
+    /* Headings recede. The numbers are the content, not the labels. */
+    .card h2 {
+      font-size: var(--t-sm);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-4);
+    }
+    .card h3 {
+      font-size: var(--t-md);
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: var(--sp-3);
+    }
+    .card p, .card li { font-size: var(--t-sm); line-height: 1.55; }
+
+    /* Numbers get tabular figures so columns line up and don't jitter. */
+    .num, .kpi-value, .amount, table td, table th {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: 'tnum' 1;
+    }
+    .kpi-label {
+      font-size: var(--t-xs);
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: var(--sp-2);
+    }
+    .kpi-value {
+      font-size: var(--t-xl);
+      font-weight: 650;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .kpi-value.positive { color: var(--pos); }
+    .kpi-value.negative { color: var(--neg); }
+    .text-muted { color: var(--text-muted); }
+
+    /* Desktop tabs: a quiet strip, not a toolbar. */
+    .tab {
+      padding: var(--sp-3) var(--sp-4);
+      font-size: var(--t-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      transition: color .15s ease, border-color .15s ease;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+    .tab-divider { background: var(--border); height: 16px; }
+
+    /* Sub-navigation: a segmented control, one row, scrolls if it must. */
+    .subnav {
+      display: flex;
+      gap: var(--sp-1);
+      padding: var(--sp-1);
+      margin-bottom: var(--sp-4);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-full);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .subnav::-webkit-scrollbar { display: none; }
+    .subnav-btn {
+      flex: 0 0 auto;
+      padding: var(--sp-2) var(--sp-4);
+      border: none;
+      background: transparent;
+      border-radius: var(--r-full);
+      font: inherit;
+      font-size: var(--t-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease;
+    }
+    .subnav-btn:hover { color: var(--text); }
+    .subnav-btn.active {
+      background: var(--card);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+
+    /* Badges: outlined, not filled. Filled pills everywhere was the noise. */
+    .badge {
+      padding: 2px var(--sp-2);
+      border-radius: var(--r-sm);
+      font-size: var(--t-xs);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+    }
+    .badge-neutral { background: var(--surface); color: var(--text-muted); border-color: var(--border); }
+    .badge-success { background: var(--pos-soft);  color: var(--pos);  border-color: transparent; }
+    .badge-danger  { background: var(--neg-soft);  color: var(--neg);  border-color: transparent; }
+    .badge-warning { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+
+    /* More sheet: sections grouped under the tab they belong to. */
+    .more-group { grid-column: 1 / -1; margin-bottom: var(--sp-3); }
+    .more-group-label {
+      font-size: var(--t-xs);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 0 0 var(--sp-2) var(--sp-1);
+    }
+    .more-group .more-item {
+      display: inline-block;
+      width: auto;
+      margin: 0 var(--sp-2) var(--sp-2) 0;
+      padding: var(--sp-2) var(--sp-3);
+    }
+
+    /* Tables: rules, not boxes. */
+    table { font-size: var(--t-sm); }
+    table th {
+      font-size: var(--t-xs);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    table td { border-bottom: 1px solid var(--border); }
+
+    /* Inputs and buttons pick up the same radius and border as everything else. */
+    input, select, textarea {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-sm);
+      font-size: var(--t-md);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .btn, button.btn-primary { border-radius: var(--r-sm); font-weight: 600; }
+
+    /* Section headers were near-black gradient blocks with white text — six of
+       them, one per screen. They dated the app more than anything else on it.
+       A header is a heading; it does not need its own background. */
+    .card-hero { background: var(--card); }
+    .card-hero h2 {
+      font-size: var(--t-lg);
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      text-transform: none;
+      color: var(--text);
+      margin-bottom: var(--sp-1);
+    }
+    .card-hero p { color: var(--text-muted); opacity: 1; }
+    /* The insides of those six cards were written for a dark ground: white
+       text and translucent white tiles. Rather than pick apart six blocks of
+       inline styles, override them here — scoped to .card-hero, so nothing
+       else in the app is affected. */
+    .card-hero [style*="color: white"],
+    .card-hero [style*="color:white"],
+    .card-hero h2[style] { color: var(--text) !important; }
+    .card-hero [style*="rgba(255,255,255"] {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+    }
+    .card-hero [style*="opacity:0.8"],
+    .card-hero [style*="opacity: 0.8"],
+    .card-hero [style*="opacity:0.9"],
+    .card-hero [style*="opacity: 0.9"] { opacity: 1 !important; color: var(--text-muted) !important; }
+
+    /* In-page toggles (payoff method, checklist view) are the same control as
+       the sub-navigation. They were a separate filled-pill style, which made
+       two different-looking segmented controls sit one above the other. */
+    .toggle-group {
+      display: inline-flex;
+      gap: var(--sp-1);
+      padding: var(--sp-1);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-full);
+      margin-bottom: var(--sp-4);
+      flex-wrap: nowrap;
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .toggle-group::-webkit-scrollbar { display: none; }
+    .toggle-btn {
+      flex: 0 0 auto;
+      min-width: 0;
+      padding: var(--sp-2) var(--sp-4);
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      border-radius: var(--r-full);
+      font-size: var(--t-sm);
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background .15s ease, color .15s ease;
+    }
+    .toggle-btn:hover { color: var(--text); }
+    .toggle-btn.active {
+      background: var(--card);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+
   </style>
 </head>
 <body>
@@ -1452,15 +1693,10 @@
     let netWorthMilestones = {};
     let paydayChecklistDone = {};   // { fortnightKey: { step: true } }
     let notificationsEnabled = false;
-    let currentTab = 'dashboard';
-    let billsView = 'list'; // session-only: 'list' | 'calendar'
-    function setBillsView(v) { billsView = v; renderMain(); }
+    let currentTab = 'home';
+    let currentSection = 'home';
     let checklistView = 'payday'; // session-only: 'payday' | 'monthly'
     function setChecklistView(v) { checklistView = v; renderMain(); }
-    let insightsView = 'spending'; // session-only: 'spending' | 'trends' | 'monthlyhealth' | 'subscriptions'
-    function setInsightsView(v) { insightsView = v; renderMain(); }
-    let toolsView = 'afford'; // session-only: 'afford' | 'windfall' | 'currency'
-    function setToolsView(v) { toolsView = v; renderMain(); }
     // Helpers
     const AUD = n => ((n||0) < 0 ? '-$' : '$') + Math.abs(n||0).toLocaleString('en-AU', {minimumFractionDigits:0, maximumFractionDigits:0});
     /**
@@ -1556,7 +1792,11 @@
       return diff;
     };
     const getMonthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    // Toast
+    let billsView = 'list'; // session-only: 'list' | 'calendar'
+    function setChecklistView(v) { checklistView = v; renderMain(); }
+    // Insights' own view toggle is gone — those four views are sections of the
+    // Spending tab now, and the sub-nav is generated from NAV.
+    let toolsView = 'afford'; // session-only: 'afford' | 'windfall' | 'currency'
     function showToast(msg, type = 'default') {
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
@@ -1776,13 +2016,19 @@
       document.getElementById('headerSurplus').className = 'stat-value num ' + (monthlySurplus() >= 0 ? 'positive' : 'negative');
     }
     // Debt Helpers
+    /**
+     * The payoff queue. A cleared debt is not in it — the Amex sat at #1 with
+     * a $0 balance and the highest rate, telling you to attack a card you had
+     * already paid off. Its card stays visible further down the page.
+     */
     function getSortedDebts() {
-      if (debtMethod === 'avalanche') {
-        return [...debts].sort((a, b) => (b.rate || 0) - (a.rate || 0));
-      } else {
-        return [...debts].sort((a, b) => (a.balance || 0) - (b.balance || 0));
-      }
+      const open = debts.filter(d => (+d.balance || 0) > 0.005);
+      return debtMethod === 'avalanche'
+        ? open.sort((a, b) => (b.rate || 0) - (a.rate || 0))
+        : open.sort((a, b) => (a.balance || 0) - (b.balance || 0));
     }
+    /** Cleared debts, shown after the queue so the payoff stays on the record. */
+    const clearedDebts = () => debts.filter(d => (+d.balance || 0) <= 0.005);
     // The rate actually in force in a given month. A 0% balance-transfer card
     // is only 0% until the promo ends — treating that rate as permanent both
     // understates interest and gets the avalanche ORDER wrong, because the
@@ -1875,80 +2121,126 @@
         neverPaysOff: month >= 600
       };
     }
-    // Tab Navigation
-    const tabs = [
-      { id: 'dashboard', label: 'Dashboard' },
-      { divider: true },
-      { id: 'payplan', label: 'Income' },
-      { divider: true },
-      { id: 'transactions', label: 'Transactions' },
-      { id: 'bills', label: 'Bills' },
-      { id: 'debts', label: 'Debts' },
-      { id: 'budget', label: 'Budget' },
-      { divider: true },
-      { id: 'savingsrate', label: 'Progress' },
-      { id: 'credit', label: 'Credit' },
-      { id: 'goals', label: 'Goals' },
-      { id: 'checklist', label: 'Checklists' },
-      { id: 'afford', label: 'Tools' },
-      { divider: true },
-      { id: 'spending', label: 'Insights' },
-      { id: 'compare', label: 'Compare' },
-      { id: 'agents', label: 'CFO Agent' },
-      { divider: true },
-      { id: 'settings', label: 'Settings' }
+    /* ══════════════════════════════════════════════════════════════════
+     * Navigation
+     *
+     * There were fifteen tabs. Six of them showed spending in a slightly
+     * different arrangement, three were calculators used once a year, and
+     * finding anything meant remembering which of them it lived under.
+     *
+     * Now there are five places, each answering one question, and the
+     * sections inside them are declared here rather than hidden in a
+     * switch statement. A tab with one section shows no sub-nav at all.
+     *
+     * `after` runs once the HTML is in the document — canvases need a laid
+     * out parent before Chart.js will size them correctly.
+     * ══════════════════════════════════════════════════════════════════ */
+    const NAV = [
+      { id: 'home', label: 'Home', icon: '◉', sections: [
+        { id: 'home', label: 'Home', render: renderDashboard }
+      ]},
+      { id: 'spending', label: 'Spending', icon: '$', sections: [
+        { id: 'log',        label: 'Log',           render: renderTransactions },
+        { id: 'budget',     label: 'Budget',        render: renderBudget,           after: renderBudgetCharts },
+        { id: 'categories', label: 'Categories',    render: renderSpendingCategory },
+        { id: 'trends',     label: 'Trends',        render: renderTrends,           after: renderTrendCharts },
+        { id: 'subs',       label: 'Subscriptions', render: renderSubscriptions },
+        { id: 'compare',    label: 'Compare',       render: renderCompare }
+      ]},
+      { id: 'money', label: 'Bills & Income', short: 'Bills', icon: '⇅', sections: [
+        { id: 'bills',    label: 'Bills',    render: renderBills },
+        { id: 'calendar', label: 'Calendar', render: renderBillCalendar },
+        { id: 'pay',      label: 'Pay',      render: renderPayPlan, after: drawIncomeMonthChart }
+      ]},
+      { id: 'debts', label: 'Debts', icon: '▤', sections: [
+        { id: 'payoff', label: 'Payoff', render: renderDebtsTab,  after: wireSimulator },
+        { id: 'credit', label: 'Credit', render: renderCreditTab, after: drawCreditScoreChart }
+      ]},
+      { id: 'progress', label: 'Progress', icon: '↗', sections: [
+        { id: 'networth',   label: 'Net worth',    render: renderNetWorth,  after: renderNetWorthChart },
+        { id: 'rate',       label: 'Savings rate', render: renderSavingsRate,
+          after: () => { renderSavingsRateChart(); renderSavingsProjectionChart(); } },
+        { id: 'goals',      label: 'Goals',        render: renderGoals },
+        { id: 'checklists', label: 'Checklists',   render: renderChecklistsTab }
+      ]},
+      // Behind More: real, but not part of a normal week.
+      { id: 'tools', label: 'Tools', icon: '⌘', secondary: true, sections: [
+        { id: 'afford',   label: 'Can I afford it?', render: renderAfford },
+        { id: 'windfall', label: 'Windfall',         render: renderWindfall },
+        { id: 'currency', label: 'Currency',         render: renderCurrency }
+      ]},
+      { id: 'cfo', label: 'CFO Agent', icon: '✦', secondary: true, sections: [
+        { id: 'cfo', label: 'CFO Agent', render: renderAgentActivity }
+      ]},
+      { id: 'settings', label: 'Settings', icon: '⚙', secondary: true, sections: [
+        { id: 'settings', label: 'Settings', render: renderSettings }
+      ]}
     ];
+
+    // Old tab ids still appear in links, buttons and saved bookmarks. Nothing
+    // should dead-end because a tab got merged into another one.
+    const TAB_ALIASES = {
+      dashboard: 'home',        transactions: 'spending/log',  budget: 'spending/budget',
+      insights: 'spending',     spending: 'spending/categories', compare: 'spending/compare',
+      bills: 'money/bills',     payplan: 'money/pay',          income: 'money/pay',
+      credit: 'debts/credit',   savingsrate: 'progress/rate',  goals: 'progress/goals',
+      checklist: 'progress/checklists', afford: 'tools/afford', agents: 'cfo'
+    };
+
+    const tabById = id => NAV.find(t => t.id === id);
+    function resolveRoute(raw) {
+      let [tab, section] = String(raw || '').replace(/^#/, '').split('/');
+      if (TAB_ALIASES[tab]) [tab, section] = TAB_ALIASES[tab].split('/').concat(section ? [section] : []);
+      const t = tabById(tab) || NAV[0];
+      const s = t.sections.find(x => x.id === section) || t.sections[0];
+      return { tab: t, section: s };
+    }
+
     function renderTabs() {
       const nav = document.getElementById('tabNav');
-      nav.innerHTML = tabs.map(t =>
-        t.divider
-          ? `<span class="tab-divider" aria-hidden="true"></span>`
-          : `<button class="tab ${currentTab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`
-      ).join('');
-      nav.querySelectorAll('.tab').forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-      });
+      if (nav) {
+        nav.innerHTML = NAV.filter(t => !t.secondary).map(t =>
+          `<button class="tab ${currentTab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`
+        ).join('') + `<span class="tab-divider" aria-hidden="true"></span>` +
+          NAV.filter(t => t.secondary).map(t =>
+            `<button class="tab ${currentTab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`
+          ).join('');
+        nav.querySelectorAll('.tab').forEach(btn =>
+          btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+      }
       renderBottomNav();
     }
-    /* ------------------------------------------------------------------ *
-     * Phone navigation
-     *
-     * Four screens carry almost all daily use — checking the dashboard,
-     * logging something, income, debts. Those get the bottom bar; the other
-     * eleven live behind More. Fifteen equal tabs in a scroll strip made
-     * everything equally hard to reach.
-     * ------------------------------------------------------------------ */
 
-    const PRIMARY_TABS = [
-      { id: 'dashboard',    label: 'Home',    icon: '◉' },
-      { id: 'transactions', label: 'Log',     icon: '＋' },
-      { id: 'payplan',      label: 'Income',  icon: '↑' },
-      { id: 'debts',        label: 'Debts',   icon: '▤' }
-    ];
-
+    /* Phone navigation: the five that carry a normal week, then More. */
     function renderBottomNav() {
       const nav = document.getElementById('bottomNav');
       if (!nav) return;
-      const onPrimary = PRIMARY_TABS.some(t => t.id === currentTab);
-
-      nav.innerHTML = PRIMARY_TABS.map(t => `
+      const primary = NAV.filter(t => !t.secondary);
+      const onPrimary = primary.some(t => t.id === currentTab);
+      nav.innerHTML = primary.slice(0, 4).map(t => `
         <button class="bnav-item ${currentTab === t.id ? 'active' : ''}"
                 onclick="switchTab('${t.id}')" aria-current="${currentTab === t.id ? 'page' : 'false'}">
-          <span class="bnav-icon" aria-hidden="true">${t.icon}</span>${t.label}
+          <span class="bnav-icon" aria-hidden="true">${t.icon}</span>${t.short || t.label}
         </button>`).join('') + `
-        <button class="bnav-item ${!onPrimary ? 'active' : ''}" onclick="openMoreSheet()">
+        <button class="bnav-item ${!onPrimary || currentTab === 'progress' ? 'active' : ''}" onclick="openMoreSheet()">
           <span class="bnav-icon" aria-hidden="true">≡</span>More
         </button>`;
 
-      // Every tab appears in More, including the primary four — someone
-      // looking for "Dashboard" by name shouldn't have to know it's "Home".
+      // More lists every destination and every section inside it, so anything
+      // in the app is at most two taps away and searchable by its own name.
       const grid = document.getElementById('moreGrid');
       if (grid) {
-        grid.innerHTML = tabs.filter(t => !t.divider).map(t => `
-          <button class="more-item ${currentTab === t.id ? 'active' : ''}"
-                  onclick="switchTab('${t.id}'); closeMoreSheet();">${t.label}</button>`).join('');
+        grid.innerHTML = NAV.map(t => t.sections.length === 1
+          ? `<button class="more-item ${currentTab === t.id ? 'active' : ''}"
+                     onclick="switchTab('${t.id}'); closeMoreSheet();">${t.label}</button>`
+          : `<div class="more-group"><div class="more-group-label">${t.label}</div>` +
+            t.sections.map(s => `<button class="more-item ${currentTab === t.id && currentSection === s.id ? 'active' : ''}"
+                     onclick="switchTab('${t.id}', '${s.id}'); closeMoreSheet();">${s.label}</button>`).join('') +
+            `</div>`
+        ).join('');
       }
     }
+
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMoreSheet(); });
 
@@ -1960,14 +2252,26 @@
       document.getElementById('moreSheet')?.classList.remove('open');
     }
 
-    /** Switching tabs from anywhere, not just the nav bar. */
-    function switchTab(id) {
-      currentTab = id;
+    /**
+     * Switching from anywhere, by tab or by "tab/section". Old tab ids still
+     * work — they resolve through TAB_ALIASES to wherever that thing lives now.
+     */
+    function switchTab(id, section) {
+      const r = resolveRoute(section ? `${id}/${section}` : id);
+      currentTab = r.tab.id;
+      currentSection = r.section.id;
+      if (location.hash.replace(/^#/, '') !== route()) history.replaceState(null, '', '#' + route());
       renderTabs();
-      renderBottomNav();
       renderMain();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    const route = () => tabById(currentTab)?.sections.length > 1
+      ? `${currentTab}/${currentSection}` : currentTab;
+    function setSection(id) { switchTab(currentTab, id); }
+    window.addEventListener('hashchange', () => {
+      const r = resolveRoute(location.hash);
+      if (r.tab.id !== currentTab || r.section.id !== currentSection) switchTab(r.tab.id, r.section.id);
+    });
     // Dashboard
     /**
      * Bills due, and bills overdue.
@@ -2040,41 +2344,47 @@
           + '</div></div>';
       }).join('');
     }
+    /**
+     * Home answers one question: how am I doing, right now.
+     *
+     * It used to open with Net Worth, Total Debt, Expected Income and
+     * Expected Surplus — three of which are already in the header on every
+     * screen, and all four of which are projections rather than facts. The
+     * four below are things that are true today.
+     */
     function renderDashboard() {
       const kpiNote = (t) => `<div class="text-muted" style="font-size:11px;margin-top:0.35rem;line-height:1.35;">${t}</div>`;
+      const cash = cfoSnapshot && cfoSnapshot.cash;
+      const key = getMonthKey();
+      const rows = (transactions || []).filter(t => t && String(t.date).startsWith(key));
+      const inc = rows.filter(t => t.type === 'income').reduce((s, t) => s + (+t.amount || 0), 0);
+      const out = rows.filter(t => t.type !== 'income').reduce((s, t) => s + (+t.amount || 0), 0);
+      const left = inc - out;
+      const pay = effectivePay();
+      const nextPay = income.myNextPay ? expectedPayDates(key).find(d => d >= today()) || income.myNextPay : null;
+
+      const kpi = (label, value, cls, note) => `
+        <div class="kpi-card">
+          <div class="kpi-label">${label}</div>
+          <div class="kpi-value num ${cls || ''}">${value}</div>
+          ${note ? kpiNote(note) : ''}
+        </div>`;
+
       return `
         <div class="grid-4">
-          <div class="kpi-card">
-            <div class="kpi-label">Net Worth</div>
-            <div class="kpi-value num ${netWorth() >= 0 ? 'positive' : 'negative'}">${AUD(netWorth())}</div>
-            ${kpiNote(`${AUD(totalAssets())} assets, ${AUD(totalDebt())} owed`)}
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Total Debt</div>
-            <div class="kpi-value num">${AUD(totalDebt())}</div>
-            ${kpiNote(dailyInterest() > 0 ? `Costing ${AUD(dailyInterest())} a day in interest` : 'No interest accruing')}
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Expected Income</div>
-            <div class="kpi-value num">${AUD(monthlyIncome())}</div>
-            ${(() => {
-              const p = effectivePay();
-              const logged = receivedThisMonth() > 0
-                ? `<strong>${AUD(receivedThisMonth())} logged</strong> so far this month.`
-                : '<strong>Nothing logged</strong> this month yet.';
-              if (p.basis === 'none') return kpiNote('No pay amount set and nothing logged yet — log a pay and this fills in.');
-              // Two clauses. A KPI card is a number and a hint, not a paragraph.
-              const src = p.basis === 'fixed'
-                ? `${AUD(p.amount)} ${income.myFreq || 'monthly'}`
-                : `avg ${AUD(p.amount)} ${income.myFreq || 'monthly'}`;
-              return kpiNote(`${src} · ${logged}`);
-            })()}
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Expected Surplus</div>
-            <div class="kpi-value num ${monthlySurplus() >= 0 ? 'positive' : 'negative'}">${AUD(monthlySurplus())}</div>
-            ${kpiNote('After bills and debt minimums')}
-          </div>
+          ${cash && cash.estimatedNow != null
+            ? kpi('In the bank', AUD(cash.estimatedNow), '',
+                `Last counted ${AUD(cash.lastRecorded)} on ${formatDate(cash.recordedOn)}`)
+            : kpi('In the bank', '—', '', 'Tell the bot "balance 1700" and this fills in.')}
+          ${kpi(`Left in ${new Date().toLocaleDateString('en-AU', { month: 'long' })}`, AUD(left),
+                left >= 0 ? 'positive' : 'negative',
+                `${AUD(inc)} in, ${AUD(out)} out so far`)}
+          ${pay.basis === 'none'
+            ? kpi('Next pay', '—', '', 'Log a pay and this fills in.')
+            : kpi('Next pay', AUD(pay.amount), '',
+                nextPay ? `Expected ${formatDate(nextPay)}` : 'No pay date set')}
+          ${kpi('Debt-free', calcDebtFreeDate() || '—', '',
+                dailyInterest() > 0 ? `Interest is costing ${AUD(dailyInterest())} a day` : 'No interest accruing')}
         </div>
         ${renderMonthStatusCard()}
         ${renderRunwayCard()}
@@ -2827,16 +3137,6 @@
       return rows;
     }
     // Bills
-    function renderBillsTab() {
-      const toggle = `
-        <div class="card">
-          <div class="toggle-group">
-            <button class="toggle-btn ${billsView === 'list' ? 'active' : ''}" onclick="setBillsView('list')">List</button>
-            <button class="toggle-btn ${billsView === 'calendar' ? 'active' : ''}" onclick="setBillsView('calendar')">Calendar</button>
-          </div>
-        </div>`;
-      return toggle + (billsView === 'calendar' ? renderBillCalendar() : renderBills());
-    }
     function renderBills() {
       const monthlyTotal = monthlyBillsTotal();
       const upcoming = bills.filter(b => {
@@ -3129,6 +3429,12 @@
           </div>
         </div>
         ${sorted.map((d, i) => renderDebtCard(d, i + 1)).join('')}
+        ${clearedDebts().length ? `<div class="card">
+          <h2>Cleared</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+            ${clearedDebts().map(d => `<span class="badge badge-success">${d.name} — paid off</span>`).join('')}
+          </div>
+        </div>` : ''}
         <div class="card">
           <h2>Extra Payment Simulator</h2>
           <p class="text-muted" style="font-size: 13px; margin-bottom: 1rem;">See how extra cash speeds up each debt — then log it for real if you've got it spare.</p>
@@ -3733,27 +4039,6 @@
       return tasks;
     }
     // Tools (Afford It / Windfall / Currency)
-    function renderToolsTab() {
-      const views = [
-        { id: 'afford', label: 'Afford It?' },
-        { id: 'windfall', label: 'Windfall' },
-        { id: 'currency', label: 'Currency' }
-      ];
-      const toggle = `
-        <div class="card">
-          <div class="toggle-group">
-            ${views.map(v => `<button class="toggle-btn ${toolsView === v.id ? 'active' : ''}" onclick="setToolsView('${v.id}')">${v.label}</button>`).join('')}
-          </div>
-        </div>`;
-      let body;
-      switch (toolsView) {
-        case 'windfall': body = renderWindfall(); break;
-        case 'currency': body = renderCurrency(); break;
-        default: body = renderAfford();
-      }
-      return toggle + body;
-    }
-    // Afford It
     function renderAfford() {
       return `
         <div class="card">
@@ -3969,7 +4254,7 @@
       };
 
       return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%); color: white; border-radius: 16px;">
+        <div class="card card-hero">
           <h2 style="color: white; margin-bottom: 0.25rem;">${monthName} income</h2>
           <p style="opacity:0.8;font-size:13px;">What you were actually paid, against what you should have been.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-top:1.25rem;">
@@ -3983,8 +4268,18 @@
               <div style="font-size:10px;opacity:0.6;margin-top:0.2rem;">${expected.length} actual payday${expected.length === 1 ? '' : 's'}${expected.length >= 3 ? ' — a three-pay month' : ''}</div>
             </div>
             <div style="text-align:center;background:rgba(255,255,255,0.1);border-radius:10px;padding:1rem;">
-              <div style="font-size:11px;opacity:0.7;text-transform:uppercase;">Difference</div>
-              <div style="font-size:22px;font-weight:700;margin-top:0.25rem;color:${gap >= 0 ? '#6EE7B7' : '#FCA5A5'};" class="num">${gap >= 0 ? '+' : '−'}${AUD(Math.abs(gap))}</div>
+              ${(() => {
+                // Mid-month, the gap against the WHOLE month is always negative,
+                // and painting it red said "you are short $3,161" on a month
+                // that was exactly on schedule. What matters is whether the
+                // pays that have already fallen due actually arrived.
+                const behind = shortSoFar < -0.005;
+                const label = behind ? 'Short' : gap < -0.005 ? 'Still to come' : 'Ahead';
+                const value = behind ? shortSoFar : gap;
+                const colour = behind ? 'var(--neg)' : gap < -0.005 ? 'var(--text)' : 'var(--pos)';
+                return `<div style="font-size:11px;opacity:0.7;text-transform:uppercase;">${label}</div>
+              <div style="font-size:22px;font-weight:700;margin-top:0.25rem;color:${colour};" class="num">${AUD(Math.abs(value))}</div>`;
+              })()}
             </div>
           </div>
           <div style="margin-top:1rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.12);border-radius:10px;font-size:13px;border-left:3px solid ${verdictColour};">
@@ -4082,7 +4377,7 @@
       const fk = getFortnightKey();
       const goalsNeeded = totalGoalSavingsPerFortnight();
       return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%); color: white; border-radius: 16px;">
+        <div class="card card-hero">
           <h2 style="color: white;">Savings Goals</h2>
           <p style="opacity: 0.8; font-size: 13px; margin-top: 0.25rem;">Each fortnight, set aside the required amount and tick it off.</p>
           ${goalsNeeded > 0 ? `<div style="margin-top: 1rem; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem;" class="flex-between"><span style="font-size:13px;">Total needed this fortnight:</span><span class="num" style="font-weight:700;font-size:18px;">${AUD(goalsNeeded)}</span></div>` : ''}
@@ -4548,9 +4843,6 @@
       });
     }
 
-    function renderProgressTab() {
-      return renderSavingsRate() + renderNetWorth();
-    }
     function renderSavingsRate() {
       const measured = currentSavingsRate();
       // No income logged yet this month — show an empty ring rather than a
@@ -4712,7 +5004,7 @@
       const subs = detectSubscriptions();
       const totalMonthly = subs.reduce((s,x) => s + x.monthly, 0);
       return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%);color:white;border-radius:16px;">
+        <div class="card card-hero">
           <h2 style="color:white;">Subscription Audit</h2>
           <p style="opacity:0.8;font-size:13px;margin-top:0.25rem;">Detected from your transaction history. Review each one — keep it or cut it.</p>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem;">
@@ -5080,7 +5372,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       const completedCount = steps.filter(s => done[s.key]).length;
       const pct = steps.length > 0 ? Math.round(completedCount / steps.length * 100) : 0;
       return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%);color:white;border-radius:16px;">
+        <div class="card card-hero">
           <h2 style="color:white;">Payday Action Checklist</h2>
           <p style="opacity:0.8;font-size:13px;margin-top:0.25rem;">${fortnightLabel(fk)} — do these IN ORDER the moment pay lands</p>
           <div style="margin-top:1.5rem;">
@@ -5171,7 +5463,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       const colours = ['#FF3B30', '#F97316', '#FF9500', '#34C759', '#0F95A8', '#5E5CE6'];
 
       return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%);color:white;border-radius:16px;">
+        <div class="card card-hero">
           <h2 style="color:white;margin:0;">Payoff timeline</h2>
           <p style="opacity:0.75;font-size:13px;margin-top:0.35rem;">
             ${debtMethod === 'avalanche' ? 'Highest rate first' : 'Smallest balance first'} ·
@@ -5321,7 +5613,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
     // ═══════════════════════════════════════════════════════════════
     function renderCurrency() {
       return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%);color:white;border-radius:16px;">
+        <div class="card card-hero">
           <h2 style="color:white;">Currency Converter</h2>
           <p style="opacity:0.8;font-size:13px;margin-top:0.25rem;">Live rates via exchangerate API · Wise fee estimate included</p>
         </div>
@@ -5914,83 +6206,34 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
     }
 
     function renderMain() {
-      let html = '';
-      switch (currentTab) {
-        case 'dashboard': html = renderDashboard(); break;
-        case 'payplan': html = renderPayPlan(); break;
-        case 'transactions': html = renderTransactions(); break;
-        case 'bills': html = renderBillsTab(); break;
-        case 'debts': html = renderDebtsTab(); break;
-        case 'budget': html = renderBudget(); break;
-        case 'savingsrate': html = renderProgressTab(); break;
-        case 'credit': html = renderCreditTab(); break;
-        case 'goals': html = renderGoals(); break;
-        case 'checklist': html = renderChecklistsTab(); break;
-        case 'afford': html = renderToolsTab(); break;
-        case 'spending': html = renderInsightsTab(); break;
-        case 'compare': html = renderCompare(); break;
-        case 'agents': html = renderAgentActivity(); break;
-        case 'settings': html = renderSettings(); break;
-      }
+      const tab = tabById(currentTab) || NAV[0];
+      const section = tab.sections.find(x => x.id === currentSection) || tab.sections[0];
+
+      // A single-section tab gets no sub-nav — a row of one button is noise.
+      const subnav = tab.sections.length > 1
+        ? `<nav class="subnav" aria-label="${tab.label} sections">${tab.sections.map(sx =>
+            `<button class="subnav-btn ${sx.id === section.id ? 'active' : ''}"
+                     onclick="setSection('${sx.id}')"
+                     aria-current="${sx.id === section.id ? 'page' : 'false'}">${sx.label}</button>`).join('')}</nav>`
+        : '';
+
       const content = document.getElementById('mainContent');
-      content.innerHTML = html;
-      // Transaction filters are wired inline via refreshTxView(), which also
-      // refreshes the month totals. The old listener here only redrew the first
-      // tbody on the page and knew nothing about the month picker or summary.
-      if (currentTab === 'debts') {
-        setTimeout(() => {
-          const slider = document.getElementById('extraPayment');
-          if (slider) {
-            slider.addEventListener('input', updateSimulator);
-            updateSimulator();
-          }
-        }, 0);
-      }
-      // The cash chart is inside a collapsed <details> and draws on open, so
-      // it isn't rendered here — a hidden canvas has no size and Chart.js
-      // would lay it out wrong.
-      if (currentTab === 'payplan') {
-        setTimeout(() => drawIncomeMonthChart(), 0);
-      }
-      if (currentTab === 'credit') {
-        setTimeout(() => drawCreditScoreChart(), 0);
-      }
-      if (currentTab === 'budget') {
-        setTimeout(() => renderBudgetCharts(), 0);
-      }
-      if (currentTab === 'savingsrate') {
-        setTimeout(() => { renderSavingsRateChart(); renderSavingsProjectionChart(); renderNetWorthChart(); }, 0);
-      }
-      if (currentTab === 'spending' && insightsView === 'trends') {
-        setTimeout(() => renderTrendCharts(), 0);
-      }
+      content.innerHTML = subnav + section.render();
+      // Charts need a laid-out parent before Chart.js can size them.
+      if (section.after) setTimeout(section.after, 0);
     }
+
+    /** The payoff slider is the one control that has to be wired after render. */
+    function wireSimulator() {
+      const slider = document.getElementById('extraPayment');
+      if (!slider) return;
+      slider.addEventListener('input', updateSimulator);
+      updateSimulator();
+    }
+
     function renderAll() { renderHeader(); renderMain(); }
 
     // Insights (Spending / Trends / Monthly Health / Subscriptions)
-    function renderInsightsTab() {
-      const views = [
-        { id: 'spending', label: 'Spending' },
-        { id: 'trends', label: 'Trends' },
-        { id: 'monthlyhealth', label: 'Monthly Health' },
-        { id: 'subscriptions', label: 'Subscriptions' }
-      ];
-      const toggle = `
-        <div class="card">
-          <div class="toggle-group">
-            ${views.map(v => `<button class="toggle-btn ${insightsView === v.id ? 'active' : ''}" onclick="setInsightsView('${v.id}')">${v.label}</button>`).join('')}
-          </div>
-        </div>`;
-      let body;
-      switch (insightsView) {
-        case 'trends': body = renderTrends(); break;
-        case 'monthlyhealth': body = renderMonthlyHealth(); break;
-        case 'subscriptions': body = renderSubscriptions(); break;
-        default: body = renderSpendingCategory();
-      }
-      return toggle + body;
-    }
-    // Spending by Category
     function renderSpendingCategory() {
       const monthKey = getMonthKey();
       const monthLabel = new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
@@ -6033,88 +6276,6 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       `;
     }
 
-    // Monthly Financial Health Check
-    function renderMonthlyHealth() {
-      const monthKey = getMonthKey();
-      const monthLabel = new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
-      const inc = monthlyIncome();
-      const bills = monthlyBillsTotal();
-      const debt = monthlyDebtMin();
-      const inMonth = transactions.filter(t => getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
-      const exp = inMonth.filter(isSpend).reduce((s, t) => s + t.amount, 0);
-      // Debt payments aren't spending, but the money is still gone — so they
-      // come off income before anything calls the remainder a surplus.
-      const debtPaid = inMonth.filter(isDebtPayment).reduce((s, t) => s + t.amount, 0);
-      const surplus = inc - exp - debtPaid;
-      const debtProgress = totalDebt() > 0 ? ((initialDebt || totalDebt()) - totalDebt()) / (initialDebt || 1) * 100 : 0;
-      return `
-        <div class="card" style="background: linear-gradient(135deg, var(--text) 0%, #2C2C2E 100%); color: white; border-radius: 16px;">
-          <h2 style="color: white; margin-bottom: 0.5rem;">Monthly Financial Health</h2>
-          <p style="opacity: 0.8; font-size: 13px;">Your financial snapshot for ${monthLabel}</p>
-        </div>
-
-        <div class="card">
-          <h2>This Month's Metrics</h2>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-            <div style="background: var(--surface); padding: 1.25rem; border-radius: 8px; border-left: 4px solid var(--accent);">
-              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Income</div>
-              <div class="num" style="font-size: 20px; font-weight: 700; color: var(--accent);">${AUD(inc)}</div>
-            </div>
-            <div style="background: var(--surface); padding: 1.25rem; border-radius: 8px; border-left: 4px solid var(--warning);">
-              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Spent${debtPaid > 0 ? ` <span style="font-weight:400;">+ ${AUD(debtPaid)} to debt</span>` : ''}</div>
-              <div class="num" style="font-size: 20px; font-weight: 700; color: #D97706;">${AUD(exp)}</div>
-            </div>
-            <div style="background: var(--surface); padding: 1.25rem; border-radius: 8px; border-left: 4px solid var(--success);">
-              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Surplus</div>
-              <div class="num" style="font-size: 20px; font-weight: 700; color: #30B650;">${AUD(surplus)}</div>
-            </div>
-            <div style="background: var(--surface); padding: 1.25rem; border-radius: 8px; border-left: 4px solid var(--purple);">
-              <div class="text-muted" style="font-size: 12px; margin-bottom: 0.5rem;">Debt Paid Down</div>
-              <div class="num" style="font-size: 20px; font-weight: 700; color: var(--purple-dark);">${Math.round(debtProgress)}%</div>
-            </div>
-          </div>
-
-          <h3>Health Status</h3>
-          <div style="display: grid; gap: 0.75rem;">
-            <div class="flex-between" style="padding: 1rem; background: ${surplus >= 0 ? 'var(--surface)' : 'var(--surface)'}; border-radius: 8px;">
-              <span>Savings Status</span>
-              <span style="font-weight: 700; color: ${surplus >= 0 ? 'var(--success)' : 'var(--danger)'};">${surplus >= 0 ? '✓ Saving' : '⚠ Overspending'}</span>
-            </div>
-            <div class="flex-between" style="padding: 1rem; background: ${bills + debt <= inc * 0.7 ? 'var(--surface)' : 'var(--surface)'}; border-radius: 8px;">
-              <span>Bills + Debt Coverage</span>
-              <span style="font-weight: 700; color: ${bills + debt <= inc * 0.7 ? 'var(--success)' : 'var(--danger)'};">${Math.round((bills + debt) / inc * 100)}% of income</span>
-            </div>
-            <div class="flex-between" style="padding: 1rem; background: ${totalDebt() > 0 ? 'var(--surface)' : 'var(--surface)'}; border-radius: 8px;">
-              <span>Debt Progress</span>
-              <span style="font-weight: 700; color: var(--purple-dark);">${totalDebt() > 0 ? `${Math.round(debtProgress)}% progress` : '✓ Debt-free'}</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // Init
-    async function init() {
-      try {
-        renderTabs();
-        await loadData();
-      } catch (e) {
-        console.error('Init error:', e);
-        renderTabs();
-        renderAll();
-      }
-    }
-    // init() is triggered from the onAuthStateChanged listener once a user is signed in.
-  </script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.log('SW error:', err));
-      });
-    }
   </script>
 
   <!-- Phone navigation. Hidden above 768px. -->
