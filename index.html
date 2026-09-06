@@ -1648,7 +1648,18 @@
         currentUser = user;
         if (user) {
           document.getElementById('authScreen').classList.add('hidden');
-          init();
+          // A throw in here is invisible: the auth screen is already gone, so
+          // the page sits on its static header showing $0 with no tabs and no
+          // content, and nothing on screen says why. That is exactly what a
+          // missing init() looked like.
+          Promise.resolve().then(init).catch((e) => {
+            console.error('Init failed:', e);
+            const main = document.getElementById('mainContent');
+            if (main) main.innerHTML =
+              `<div class="card"><h2>Something went wrong loading the app</h2>
+               <p>${String(e && e.message || e)}</p>
+               <p class="text-muted">Reload the page. If it keeps happening, the details are in the browser console.</p></div>`;
+          });
         } else {
           document.getElementById('authScreen').classList.remove('hidden');
         }
@@ -6274,6 +6285,28 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
           `}
         </div>
       `;
+    }
+
+
+    /**
+     * Entry point, called by onAuthStateChanged once a user is signed in.
+     *
+     * This has to draw the navigation BEFORE loading data: loadData can fail
+     * (offline, a permissions error) and the app still has to be usable. When
+     * this function went missing the page rendered its static header and
+     * nothing else — no tabs, no content, and no error visible on screen,
+     * because the throw happened inside the auth callback.
+     */
+    async function init() {
+      try {
+        renderTabs();
+        await loadData();
+        renderTabs();
+      } catch (e) {
+        console.error('Init error:', e);
+        renderTabs();
+        renderAll();
+      }
     }
 
   </script>
