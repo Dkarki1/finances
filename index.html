@@ -1512,6 +1512,19 @@
       return { amount: Math.round(avg * 100) / 100, basis: 'logged-average', n: recent.length };
     };
 
+    /**
+     * Money leaving the account splits in two, and the split matters nearly
+     * everywhere. A debt payment moves money from one side of the balance
+     * sheet to the other — net worth is unchanged — while spending consumes
+     * it. Adding the two together and calling the total "expenses" is what
+     * made a month with $4,801 of deleveraging read as overspending.
+     *
+     * Debt payments stay type 'expense' because they really are cash out and
+     * the cash projection needs them. The category is what separates them.
+     */
+    const isDebtPayment = t => !!t && t.category === 'Debt Payment';
+    const isSpend = t => !!t && t.type !== 'income' && !isDebtPayment(t);
+
     /** What has actually arrived this month, from logged income. */
     const receivedThisMonth = () => {
       const key = getMonthKey();
@@ -2088,12 +2101,13 @@
       const monthName = new Date().toLocaleDateString('en-AU', { month: 'long' });
       const rows = (transactions || []).filter(t => t && String(t.date).startsWith(monthKey));
       const inc = rows.filter(t => t.type === 'income').reduce((s, t) => s + (+t.amount || 0), 0);
-      const exp = rows.filter(t => t.type !== 'income').reduce((s, t) => s + (+t.amount || 0), 0);
-      const net = inc - exp;
+      const exp = rows.filter(isSpend).reduce((s, t) => s + (+t.amount || 0), 0);
+      const debtPaid = rows.filter(isDebtPayment).reduce((s, t) => s + (+t.amount || 0), 0);
+      const net = inc - exp - debtPaid;
 
       const budgeted = Object.entries(budgets || {}).filter(([, limit]) => limit > 0);
       const spendByCat = {};
-      rows.filter(t => t.type !== 'income').forEach(t => {
+      rows.filter(isSpend).forEach(t => {
         spendByCat[t.category] = (spendByCat[t.category] || 0) + (+t.amount || 0);
       });
 
@@ -2120,9 +2134,10 @@
           <h2 style="margin:0;">${monthName} so far</h2>
           <span class="text-muted" style="font-size:12px;">${rows.length} transaction${rows.length === 1 ? '' : 's'}</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:1rem;margin-top:1rem;">
           <div><div class="text-muted" style="font-size:11px;">In</div><div class="num" style="font-weight:700;color:var(--success-dark);">${AUD(inc)}</div></div>
-          <div><div class="text-muted" style="font-size:11px;">Out</div><div class="num" style="font-weight:700;color:var(--danger);">${AUD(exp)}</div></div>
+          <div><div class="text-muted" style="font-size:11px;">Spent</div><div class="num" style="font-weight:700;color:var(--danger);">${AUD(exp)}</div></div>
+          ${debtPaid > 0 ? `<div><div class="text-muted" style="font-size:11px;">Debt paid</div><div class="num" style="font-weight:700;color:var(--accent);">${AUD(debtPaid)}</div></div>` : ''}
           <div><div class="text-muted" style="font-size:11px;">Net</div><div class="num" style="font-weight:700;color:${net >= 0 ? 'var(--success-dark)' : 'var(--danger)'};">${net >= 0 ? '+' : '−'}${AUD(Math.abs(net))}</div></div>
         </div>
         ${budgeted.length === 0
@@ -2531,15 +2546,17 @@
     function renderTxSummary() {
       const rows = filteredTx();
       const inc = rows.filter(t => t.type === 'income').reduce((s, t) => s + (+t.amount || 0), 0);
-      const exp = rows.filter(t => t.type !== 'income').reduce((s, t) => s + (+t.amount || 0), 0);
-      const net = inc - exp;
+      const exp = rows.filter(isSpend).reduce((s, t) => s + (+t.amount || 0), 0);
+      const debtPaid = rows.filter(isDebtPayment).reduce((s, t) => s + (+t.amount || 0), 0);
+      const net = inc - exp - debtPaid;
       const label = txMonthFilter
         ? new Date(txMonthFilter + '-01T00:00:00').toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
         : 'All time';
       return `<div style="display:flex;flex-wrap:wrap;gap:1.25rem;padding:0.75rem 0 1rem;border-bottom:1px solid var(--border);margin-bottom:0.75rem;">
         <div><div class="text-muted" style="font-size:11px;">${label}</div><div style="font-weight:700;">${rows.length} transaction${rows.length === 1 ? '' : 's'}</div></div>
         <div><div class="text-muted" style="font-size:11px;">Money in</div><div class="num" style="font-weight:700;color:var(--success-dark);">${AUD(inc)}</div></div>
-        <div><div class="text-muted" style="font-size:11px;">Money out</div><div class="num" style="font-weight:700;color:var(--danger);">${AUD(exp)}</div></div>
+        <div><div class="text-muted" style="font-size:11px;">Spent</div><div class="num" style="font-weight:700;color:var(--danger);">${AUD(exp)}</div></div>
+        ${debtPaid > 0 ? `<div><div class="text-muted" style="font-size:11px;">Debt paid</div><div class="num" style="font-weight:700;color:var(--accent);">${AUD(debtPaid)}</div></div>` : ''}
         <div><div class="text-muted" style="font-size:11px;">Net</div><div class="num" style="font-weight:700;color:${net >= 0 ? 'var(--success-dark)' : 'var(--danger)'};">${AUD(net)}</div></div>
       </div>`;
     }
@@ -2577,7 +2594,7 @@
           <td data-label="Date">${formatDate(t.date)}<span class="row-meta"> · ${t.category}</span></td>
           <td data-label="What">${t.name || '—'}${sourceBadge(t.source)}</td>
           <td data-label="Category"><span class="badge badge-neutral">${t.category}</span></td>
-          <td data-label="Type"><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type}</span></td>
+          <td data-label="Type"><span class="badge ${t.type === 'income' ? 'badge-success' : isDebtPayment(t) ? 'badge-neutral' : 'badge-danger'}">${t.type === 'income' ? 'income' : isDebtPayment(t) ? 'debt' : 'expense'}</span></td>
           <td data-label="Amount" style="text-align: right;"><span class="amount num ${t.type === 'income' ? 'income' : 'expense'}">${t.type === 'income' ? '+' : '-'}${AUD(t.amount)}</span></td>
           <td data-label=""><button class="btn-icon btn-danger btn-small" onclick="deleteTx(${t.id})">×</button></td>
         </tr>
@@ -3008,7 +3025,7 @@
       const from = billPeriodStart(bill);
       const name = String(bill.name).trim().toLowerCase();
       const hit = [...transactions].reverse().find(t =>
-        t && t.type !== 'income' && t.date >= from &&
+        isSpend(t) && t.date >= from &&
         String(t.name || '').trim().toLowerCase().includes(name));
       if (!hit) { showToast('Nothing logged for this period', 'error'); return; }
       if (!confirm(`Remove the ${AUD(hit.amount)} ${bill.name} payment logged ${hit.date}?`)) return;
@@ -3473,7 +3490,7 @@
           <div class="category-grid">
             ${categories.map(cat => {
               const ceiling = budgets[cat] || 0;
-              const spent = transactions.filter(t => t.type === 'expense' && t.category === cat && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey).reduce((s, t) => s + t.amount, 0);
+              const spent = transactions.filter(t => isSpend(t) && t.category === cat && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey).reduce((s, t) => s + t.amount, 0);
               const remaining = ceiling - spent;
               const percent = ceiling > 0 ? (spent / ceiling) * 100 : 0;
               const weekly = ceiling / 4.3;
@@ -3553,7 +3570,7 @@
       if (barCTX) {
         if (window.barChart) window.barChart.destroy();
         const incomeData = sixMonths.map(m => { const txInc = transactions.filter(t => t.type === 'income' && getMonthKey(new Date(t.date + 'T00:00:00')) === m).reduce((s, t) => s + t.amount, 0); return txInc > 0 ? txInc : monthlyIncome() || 0; });
-        const expenseData = sixMonths.map(m => transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === m).reduce((s, t) => s + t.amount, 0));
+        const expenseData = sixMonths.map(m => transactions.filter(t => isSpend(t) && getMonthKey(new Date(t.date + 'T00:00:00')) === m).reduce((s, t) => s + t.amount, 0));
         window.barChart = new Chart(barCTX, { type: 'bar', data: { labels: sixMonths.map(m => new Date(m + '-01').toLocaleDateString('en-AU', { month: 'short' })), datasets: [{ label: 'Income', data: incomeData, backgroundColor: '#34C759', borderRadius: 4 }, { label: 'Expenses', data: expenseData, backgroundColor: '#FF3B30', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { color: '#6E6E73' }, grid: { color: '#D2D2D7' } }, x: { ticks: { color: '#6E6E73' }, grid: { display: false } } }, plugins: { legend: { labels: { font: { family: '-apple-system', size: 10 }, color: '#1D1D1F', padding: 10 } } } } });
       }
     }
@@ -4083,7 +4100,7 @@
 
     function detectSpendingLeaks() {
       const monthKey = getMonthKey();
-      const expenses = transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
+      const expenses = transactions.filter(t => isSpend(t) && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
       const grouped = {};
       expenses.forEach(t => {
         const key = t.name.toLowerCase().trim();
@@ -4386,7 +4403,9 @@
       const rows = (transactions || []).filter(t => t && String(t.date).startsWith(monthKey));
       const earned = rows.filter(t => t.type === 'income').reduce((s, t) => s + (+t.amount || 0), 0);
       if (earned <= 0) return null;
-      const spent = rows.filter(t => t.type !== 'income').reduce((s, t) => s + (+t.amount || 0), 0);
+      // Deleveraging is saving. Counting a debt payment as spending here made
+      // the best months look like the worst ones.
+      const spent = rows.filter(isSpend).reduce((s, t) => s + (+t.amount || 0), 0);
       return Math.max(0, Math.round(((earned - spent) / earned) * 100));
     }
     function recordSavingsRate() {
@@ -4712,7 +4731,7 @@
     function detectSubscriptions() {
       const subKeywords = ['netflix','spotify','amazon','apple','google','youtube','disney','stan','binge','foxtel','microsoft','adobe','canva','dropbox','icloud','gym','fitness','audible','kindle','tidal','hulu','paramount','peacock','hbo','prime','onedrive','notion','slack','zoom','linkedin','chatgpt','openai','anthropic','midjourney','afterpay','zip','humm'];
       const recurring = {};
-      transactions.filter(t => t.type === 'expense').forEach(t => {
+      transactions.filter(isSpend).forEach(t => {
         const name = t.name.toLowerCase();
         const isKnown = subKeywords.some(k => name.includes(k));
         if (isKnown || bills.some(b => b.name.toLowerCase() === name)) {
@@ -6465,7 +6484,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
     function renderSpendingCategory() {
       const monthKey = getMonthKey();
       const monthLabel = new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
-      const monthExpenses = transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
+      const monthExpenses = transactions.filter(t => isSpend(t) && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey);
       const byCat = {};
       monthExpenses.forEach(t => {
         const cat = t.category || 'Other';
@@ -6511,7 +6530,7 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
       const inc = monthlyIncome();
       const bills = monthlyBillsTotal();
       const debt = monthlyDebtMin();
-      const exp = transactions.filter(t => t.type === 'expense' && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey).reduce((s, t) => s + t.amount, 0);
+      const exp = transactions.filter(t => isSpend(t) && getMonthKey(new Date(t.date + 'T00:00:00')) === monthKey).reduce((s, t) => s + t.amount, 0);
       const surplus = inc - exp;
       const debtProgress = totalDebt() > 0 ? ((initialDebt || totalDebt()) - totalDebt()) / (initialDebt || 1) * 100 : 0;
       return `
