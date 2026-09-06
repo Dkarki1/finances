@@ -1523,7 +1523,9 @@
     const monthlyBillsTotal = () => bills
       .filter(b => b.active)
       .reduce((s, b) => s + toMonthly(b.amount || 0, b.freq), 0);
-    const monthlyDebtMin = () => debts.reduce((s,d)=>s+toMonthly(d.minPayment,d.minFreq||'monthly'),0);
+    // A cleared debt keeps its card so the payoff stays visible, but its minimum
+    // is no longer an obligation — counting it understates the monthly surplus.
+    const monthlyDebtMin = () => debts.reduce((s,d)=>s+((+d.balance||0) > 0.005 ? toMonthly(d.minPayment,d.minFreq||'monthly') : 0),0);
     const monthlySurplus = () => monthlyIncome() - monthlyBillsTotal() - monthlyDebtMin();
     const totalDebt = () => debts.reduce((s,d)=>s+(d.balance||0),0);
     const totalAssets = () => assets.reduce((s,a)=>s+(a.value||0),0);
