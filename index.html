@@ -5156,6 +5156,12 @@
             </div>
             <button class="btn-danger btn-small" onclick="logOut()">Sign Out</button>
           </div>
+          <!-- Which build is actually loaded. Without this, "the update isn't
+               showing" and "the update is broken" look identical from here. -->
+          <div class="flex-between" style="margin-top:0.75rem;font-size:12px;color:var(--text-muted);">
+            <span>Build ${FF_BUILD}</span>
+            <button class="btn-secondary btn-small" onclick="forceUpdate()">Check for update</button>
+          </div>
         </div>
         <div class="card">
           <h2>App Settings</h2>
@@ -6297,6 +6303,27 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
      * nothing else — no tabs, no content, and no error visible on screen,
      * because the throw happened inside the auth callback.
      */
+    /**
+     * Throws away the caches and reloads. The escape hatch for an installed
+     * copy that is showing something old — which is otherwise very hard to
+     * fix from inside the app itself.
+     */
+    async function forceUpdate() {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) {
+        console.error('Update failed:', e);
+      }
+      location.reload();
+    }
+
     async function init() {
       try {
         renderTabs();
@@ -6307,6 +6334,50 @@ Generated: ${new Date().toLocaleDateString('en-AU')}`;
         renderTabs();
         renderAll();
       }
+    }
+
+
+    /* ══════════════════════════════════════════════════════════════════
+     * Service worker
+     *
+     * This registration went missing in the same deletion that took init(),
+     * with a worse consequence: an installed copy kept whatever worker it had
+     * registered previously, and because nothing asked the browser to check
+     * /sw.js again, that worker stayed in charge indefinitely. The app on the
+     * phone could not be updated by deploying.
+     *
+     * So it does three things now rather than one. It registers. It asks for
+     * an update check on every load, and again when the window regains focus,
+     * because an installed app can sit open for days. And when a new worker
+     * takes control it reloads once — skipWaiting hands over the worker, but
+     * the HTML already parsed stays on screen until something reloads it.
+     * ══════════════════════════════════════════════════════════════════ */
+    const FF_BUILD = '2026-09-06.3';
+    if ('serviceWorker' in navigator) {
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Guard the loop: claiming triggers this on the very first install too.
+        if (reloading) return;
+        reloading = true;
+        location.reload();
+      });
+
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            console.log('SW registered:', reg.scope, '· build', FF_BUILD);
+            // update() rejects when the check can't complete — offline, or a
+            // server hiccup — and an unhandled rejection there would fire on
+            // every focus for anyone using the app on a patchy connection,
+            // which is most of the time on a phone.
+            const checkForUpdate = () => reg.update().catch(() => {});
+            checkForUpdate();
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') checkForUpdate();
+            });
+          })
+          .catch(err => console.log('SW error:', err));
+      });
     }
 
   </script>
